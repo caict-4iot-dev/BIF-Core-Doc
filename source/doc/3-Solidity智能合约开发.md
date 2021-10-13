@@ -396,4 +396,4 @@ public void callContract() {
 
 +  ERC20智能合约示例
 
-  具体合约示例见[5.1 ERC20合约示例](./Contract.md)。
+  具体合约示例见[5.1 ERC20合约示例](./5-Contract.md)。

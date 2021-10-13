@@ -1079,7 +1079,7 @@ jsmin.exe <.\private.js >.\private.min.js
 
 ​		本节内容将以下述合约代码为例，说明使用 JAVA SDK进行合约部署、调用、查询的详细流程。
 
-​		星火链SDK使用说明，详情见 [第四章 BIF-Core-SDK使用说明](./BIF-Core-SDK.md)。
+​		星火链SDK使用说明，详情见 [第四章 BIF-Core-SDK使用说明](./4-BIF-Core-SDK.md)。
 
 ​		下面是一个合约示例，合约实现了在星火链合约中存储和查询数据的接口。合约调用时，将变量设置到合约账户中进行存储。合约查询时，根据输入的参数“key"查询合约账户中存储的变量。
 
@@ -1392,7 +1392,7 @@ update issue_platform_info set platform_url='http://172.17.x.x:62/' where id=1;
 http://172.17.x.x:62/
 ```
 
-![image-20210716153145325](../_static/images/image-20210716153145325.png)
+![合约编辑器](../_static/images/image-20210716153145325.png)
 
 ### 2.6.5 操作示例
 
@@ -1425,19 +1425,19 @@ function query(input){
 
 + **合约部署**
 
-![image-20210902173256226](../_static/images/image-20210902173256226.png)
+![合约部署](../_static/images/image-20210902173256226.png)
 
 ​		通过新增文件夹夹或使用Customize文件夹下创建合约，输入文件名-->创建合约-->配置初始化参数-->部署合约。
 
 ​		部署结果如下：
 
-![image-20210902173501788](../_static/images/image-20210902173501788.png)
+![合约部署结果](../_static/images/image-20210902173501788.png)
 
 + **合约调用**
 
 ​		配置`main`/`query`内容，执行调用功能，验证合约。
 
-![image-20210902173631510](../_static/images/image-20210902173631510.png)
+![合约调用](../_static/images/image-20210902173631510.png)
 
 ## 2.7 JavaScript智能合约示例
 
@@ -1445,8 +1445,8 @@ function query(input){
 
 + 工业互联网标识合约示例
 
-  详情见 [5.2 工业互联网标识合约](./Contract.md)。
+  详情见 [5.2 工业互联网标识合约](./5-Contract.md)。
 
 + SQL智能合约示例
 
-  详情见 [5.3 SQL智能合约](./Contract.md)。
+  详情见 [5.3 SQL智能合约](./5-Contract.md)。

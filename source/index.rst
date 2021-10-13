@@ -10,8 +10,8 @@
    :maxdepth: 2
    :caption: 星火链开发手册V1.0:
 
-   doc/星火链智能合约概述.md
-   doc/JavaScript智能合约开发.md
-   doc/Solidity智能合约开发.md
-   doc/BIF-Core-SDK.md
-   doc/Contract.md
+   doc/1-星火链智能合约概述.md
+   doc/2-JavaScript智能合约开发.md
+   doc/3-Solidity智能合约开发.md
+   doc/4-BIF-Core-SDK.md
+   doc/5-Contract.md
