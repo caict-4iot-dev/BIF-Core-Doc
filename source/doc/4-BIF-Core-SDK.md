@@ -6,9 +6,9 @@
 
 ### 4.1.1 名词解析
 
-+ 账户服务： 提供账户相关的有效性校验与查询接口
++ 账户服务： 提供账户相关的有效性校验、创建与查询接口
 
-+ 合约服务： 提供合约相关的有效性校验与查询接口
++ 合约服务： 提供合约相关的有效性校验、创建与查询接口
 
 + 交易服务： 提供构建交易及交易查询接口
 
@@ -147,12 +147,12 @@ String encPublicKey = PrivateKeyManager.getEncPublicKey(rawPublicKey, KeyType.ED
 #调用此方法需要构造PrivateKeyManage对象
 PrivateKeyManager privateKey = PrivateKeyManager(KeyType.ED25519);
 String src = "test";
-byte[] signMsg = privateKey.sign(src.getBytes());
+byte[] signMsg = privateKey.sign(HexFormat.hexStringToBytes(src));
 
 #调用此方法不需要构造PrivateKeyManage对象
 String src = "test";
 String privateKey = "privbsDGan4sA9ZYpEERhMe25k4K5tnJu1fNqfEHbyKfaV9XSYq7uMcy";
-byte[] sign = PrivateKeyManager.sign(src.getBytes(), privateKey);
+byte[] sign = PrivateKeyManager.sign(HexFormat.hexStringToBytes(src), privateKey);
 ```
 
 ### 4.2.4 公钥对象使用
@@ -160,8 +160,8 @@ byte[] sign = PrivateKeyManager.sign(src.getBytes(), privateKey);
 + **构造对象**
 
 ```java
-#签名方式构造,公钥创建对象  
-String publicKey = "b0014085888f15e6fdae80827f5ec129f7e9323cf60732e7f8259fa2d68a282e8eed51fad13f";
+#公钥创建对象
+String encPublicKey = "b0014085888f15e6fdae80827f5ec129f7e9323cf60732e7f8259fa2d68a282e8eed51fad13f";
 PublicKeyManager publicKey = new PublicKeyManager(encPublicKey);
 ```
 
@@ -194,7 +194,7 @@ String src = "test";
 String publicKey = "b0014085888f15e6fdae80827f5ec129f7e9323cf60732e7f8259fa2d68a282e8eed51fad13f";
 #签名后信息
 String sign = "5EC1B9625D28906378E6ED364855295748A57CDB679F5A23C4EA1427228814B7D68BEDC9D1CCED4720630501C2EA15C9F73639936C95E903432E8E893234C402";
-Boolean verifyResult = PublicKeyManager.verify(src.getBytes(), sign, publicKey);
+Boolean verifyResult = PublicKeyManager.verify(HexFormat.hexStringToBytes(src), HexFormat.hexToByte(sign), publicKey);
 ```
 
 ### 4.2.5 密钥存储器
@@ -202,51 +202,56 @@ Boolean verifyResult = PublicKeyManager.verify(src.getBytes(), sign, publicKey);
 + **生成密钥存储器**
 
 ```java
-KeyStore.generateKeyStore(encPrivateKey, password, n, r, p, kerynSptore)
+KeyStore.generateKeyStore(encPrivateKey, password, n, r, p,version)
 ```
 
 >  请求参数
 
-| 参数          | 类型    | 描述                   |
-| ------------- | ------- | ---------------------- |
-| encPrivateKey | String  | 待存储的密钥，可为null |
-| password      | String  | 口令                   |
-| n             | Integer | CPU消耗参数，可为null  |
-| r             | Integer | 内存消息参数，可为null |
-| p             | Integer | 并行化参数，可为null   |
+| 参数          | 类型    | 描述                     |
+| ------------- | ------- | ------------------------ |
+| encPrivateKey | String  | 待存储的密钥，可为null   |
+| password      | String  | 口令                     |
+| n             | Integer | CPU消耗参数，必填且大于1 |
+| r             | Integer | 内存消息参数，必填       |
+| p             | Integer | 并行化参数，必填         |
+| version       | Integer | 版本号，必填             |
 
 > 响应数据
 
-| 参数          | 类型       | 描述             |
-| ------------- | ---------- | ---------------- |
-| encPrivateKey | String     | 解析出来的密钥   |
-| keyStore      | JsonObject | 存储密钥的存储器 |
+| 参数     | 类型        | 描述             |
+| -------- | ----------- | ---------------- |
+| keyStore | KeyStoreEty | 存储密钥的存储器 |
 
 > 示例
 
 ```java
-#私钥
+//私钥
 String encPrivateKey = "privbtGQELqNswoyqgnQ9tcfpkuH8P1Q6quvoybqZ9oTVwWhS6Z2hi1B";
-#口令
+//口令
 String password = "test1234";
-JSONObject keyStore = new JSONObject();
-String returnEncPrivateKey = KeyStore.generateKeyStore(encPrivateKey, password, 16384, 8, 1, keyStore);
-System.out.println(returnEncPrivateKey);
-System.out.println(keyStore.toJSONString());
+//版本
+int version = (int) Math.pow(2, 16);
+//方法一
+String keyStore = KeyStore.generateKeyStore(password,encPrivateKey, 16384, 8, 1, version);
+System.out.println(JSON.toJSONString(keyStore));
+//方法二
+ KeyStoreEty keyStore1 = KeyStore.generateKeyStore(password, encPrivateKey, version);
+System.out.println(JSON.toJSONString(keyStore1));
+
 ```
 
 + **解析密钥存储器**
 
 ```
-KeyStore.from(keyStore, password)
+KeyStore.decipherKeyStore(keyStore, password)
 ```
 
 >  请求参数
 
-| 参数     | 类型       | 描述             |
-| -------- | ---------- | ---------------- |
-| password | String     | 口令             |
-| keyStore | JSONObject | 存储密钥的存储器 |
+| 参数     | 类型   | 描述             |
+| -------- | ------ | ---------------- |
+| password | String | 口令             |
+| keyStore | String | 存储密钥的存储器 |
 
 > 响应数据
 
@@ -258,9 +263,11 @@ KeyStore.from(keyStore, password)
 
 ```java
 String password = "test1234";
-JSONObject keyStore = JSONObject.parseObject("{\"cypher_text\":\"7E0892CAB60761CD8F73A21F0B040ACACAB694AF8C8CA25D4BE8549CCBD8E013AA4C2D338EA11F42596E0EEC05A158C20AE4B51E2B94D102\",\"aesctr_iv\":\"38C33D8E6E5911A0C3F715F5AC75A88A\",\"address\":\"did:bid:QdBdkvmAhnRrhLp4dmeCc2ft7RNE51c9EK\",\"scrypt_params\":{\"p\":1,\"r\":8,\"salt\":\"3070E64061711D39A382E23142B91DD9A6B3AB0B5AC1FD4D202191EAC2816661\",\"n\":16384},\"version\":2}");
-encPrivateKey = KeyStore.from(keyStore, password);
+String keyStore="{\"address\":\"did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p\",\"aesctr_iv\":\"5A2515820FBA1B6527A9C406E694B7AC\",\"cypher_text\":\"46DDF466290280AAFA889A78F35943C28E9CA262C86D01FBA075C243C029E772B5241FDDCBFEC21ADA48A8A8A1D55CE3F71F\",\"scrypt_params\":{\"n\":16384,\"p\":1,\"r\":8,\"salt\":\"B9370D6D7E22361870F5A1CB05658A9D2A9CA11BA8DBC8B582331DAAAF4F6C8D\"},\"version\":65536}";
+
+String encPrivateKey =             KeyStore.decipherKeyStore(password,JsonUtils.toJavaObject(keyStoreStr,KeyStoreEty.class));
 System.out.println(encPrivateKey);
+
 ```
 
 ### 4.2.6 助记词
@@ -1335,7 +1342,6 @@ BIFTransactionPrivateContractCreateResponse privateContractCreate(BIFTransaction
 | metadata      | String   | 可选，用户自定义给交易的备注，16进制格式                     |
 | type          | Integer  | 必填，合约的语种                                             |
 | payload       | String   | 必填，对应语种的合约代码                                     |
-| initInput     | String   | 必填，合约代码中init方法的入参                               |
 | from          | String   | 必填，发起方加密机公钥                                       |
 | to            | String[] | 必填，接收方加密机公钥                                       |
 
@@ -1419,7 +1425,7 @@ BIFTransactionPrivateContractCallResponse privateContractCall(BIFTransactionPriv
 | metadata      | String   | 可选，用户自定义给交易的备注，16进制格式                     |
 | destAddress   | String   | 必填，发起方地址                                             |
 | type          | Integer  | 必填，合约的语种                                             |
-| input         | String   | 必填，合约代码中init方法的入参                               |
+| input         | String   | 必填，待触发的合约的main()入参                               |
 | from          | String   | 必填，发起方加密机公钥                                       |
 | to            | String[] | 必填，接收方加密机公钥                                       |
 
