@@ -85,7 +85,7 @@ byte[] rawPrivateKey = keypair.getRawPrivateKey();
 + **SM2算法生成**
 
 ```java
-KeyPairEntity keypair = Keypair.getBidAndKeyPairBySM2();
+KeyPairEntity keypair = KeyPairEntity.getBidAndKeyPairBySM2();
 String encAddress = keypair.getEncAddress();
 String encPublicKey = keypair.getEncPublicKey();
 String encPrivateKey = keypair.getEncPrivateKey();
@@ -182,18 +182,18 @@ String encAddress = PublicKeyManager.getEncAddress(encPublicKey);
 
 ```java
 #调用此方法需要构造PublicKeyManager对象
-String publicKey = "b0014085888f15e6fdae80827f5ec129f7e9323cf60732e7f8259fa2d68a282e8eed51fad13f";
+String publicKey = "b07a6604f00d7a00da61f975048a40db1568a3befe3eb4e69fa2d14bf3e44833db58f4761c293efcd48a912b8ee2693b4f9ae0c9a4d03ffe4fb54bb7c2a5afd758df78dd";
 PublicKeyManager publicKey = new PublicKeyManager(publicKey);
 String src = "test";
 #签名后信息
-String sign = "5EC1B9625D28906378E6ED364855295748A57CDB679F5A23C4EA1427228814B7D68BEDC9D1CCED4720630501C2EA15C9F73639936C95E903432E8E893234C402";
-Boolean verifyResult = publicKey.verify(src.getBytes(), sign.getBytes());
+String sign = "59bda0c85e354ba4690b9bd8079a8e97dd18461c5d67128e46b693aef71d391ad965464c2db2c88610b3266899392703f11d047c696d17867985d0e057018450";
+Boolean verifyResult = publicKey.verify(HexFormat.hexStringToBytes(src), HexFormat.hexToByte(sign));
 
 #调用此方法不需要构造PublicKeyManager对象
 String src = "test";
-String publicKey = "b0014085888f15e6fdae80827f5ec129f7e9323cf60732e7f8259fa2d68a282e8eed51fad13f";
+String publicKey = "b07a6604f00d7a00da61f975048a40db1568a3befe3eb4e69fa2d14bf3e44833db58f4761c293efcd48a912b8ee2693b4f9ae0c9a4d03ffe4fb54bb7c2a5afd758df78dd";
 #签名后信息
-String sign = "5EC1B9625D28906378E6ED364855295748A57CDB679F5A23C4EA1427228814B7D68BEDC9D1CCED4720630501C2EA15C9F73639936C95E903432E8E893234C402";
+String sign = "59bda0c85e354ba4690b9bd8079a8e97dd18461c5d67128e46b693aef71d391ad965464c2db2c88610b3266899392703f11d047c696d17867985d0e057018450";
 Boolean verifyResult = PublicKeyManager.verify(HexFormat.hexStringToBytes(src), HexFormat.hexToByte(sign), publicKey);
 ```
 
@@ -339,36 +339,6 @@ for (String privateKey : privateKeys) {
    System.out.print(privateKey + " ");
 }
 System.out.println();
-```
-
-### 4.2.7 计算哈希
-
-+ **指定算法（Sha256/Sm3）**
-
-> 调用用法
-
-| 方法名          | 路径                                |
-| --------------- | ----------------------------------- |
-| GenerateHashHex | cn.bif.module.encryption.utils.hash |
-
-> 请求参数
-
-| 参数 | 类型     | 描述                                     |
-| ---- | -------- | ---------------------------------------- |
-| src  | byte[]   | 待计算的字节数组，即交易的序列化字节数组 |
-| type | HashType | 算法（Sha256/Sm3）                       |
-
-> 响应数据
-
-| 参数 | 类型   | 描述 |
-| ---- | ------ | ---- |
-| hash | String | 哈希 |
-
-> 示例
-
-```java
-String test = "I want to hash test";
-String hash = HashUtil.GenerateHashHex(test.getBytes(),HashType.SHA256);
 ```
 
 ## 4.3 账户服务接口列表
@@ -756,7 +726,7 @@ BIFAccountSetPrivilegeResponse setPrivilege(BIFAccountSetPrivilegeRequest);
 | metadata                | String | 可选，用户自定义给交易的备注，16进制格式                     |
 | signers                 | list   | 选填，签名者权重列表                                         |
 | signers.address         | String | 签名者区块链账户地址                                         |
-| signers.weight          | Long   | 选填，metadata的版本                                         |
+| signers.weight          | Long   | 为签名者设置权重值                                           |
 | txThreshold             | String | 选填，交易门限，大小限制[0, Long.MAX_VALUE]                  |
 | typeThreshold           | list   | 选填，指定类型交易门限                                       |
 | typeThreshold.type      | Long   | 操作类型，必须大于0                                          |
