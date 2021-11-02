@@ -574,7 +574,7 @@ if (0 == response.getErrorCode()) {
 }
 ```
 
-### 4.3.5 setMetadata
+### 4.3.5 setMetadatas
 
 > 接口说明
 
@@ -583,7 +583,7 @@ if (0 == response.getErrorCode()) {
 > 调用方法
 
 ```java
-BIFAccountSetMetadataResponse setMetadata(BIFAccountSetMetadataRequest);
+BIFAccountSetMetadatasResponse setMetadatas(BIFAccountSetMetadatasRequest);
 ```
 
 > 请求参数
@@ -593,11 +593,11 @@ BIFAccountSetMetadataResponse setMetadata(BIFAccountSetMetadataRequest);
 | senderAddress | string  | 必填，交易源账号，即交易的发起方                             |
 | privateKey    | String  | 必填，交易源账户私钥                                         |
 | ceilLedgerSeq | Long    | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| metadata      | String  | 可选，用户自定义给交易的备注，16进制格式                     |
-| key           | String  | 必填，metadata的关键词，长度限制[1, 1024]                    |
-| value         | String  | 必填，metadata的内容，长度限制[0, 256000]                    |
-| version       | Long    | 选填，metadata的版本                                         |
-| deleteFlag    | Boolean | 选填，是否删除metadata                                       |
+| remarks       | String  | 可选，用户自定义给交易的备注                                 |
+| key           | String  | 必填，metadatas的关键词，长度限制[1, 1024]                   |
+| value         | String  | 必填，metadatas的内容，长度限制[0, 256000]                   |
+| version       | Long    | 选填，metadatas的版本                                        |
+| deleteFlag    | Boolean | 选填，是否删除remarks                                        |
 
 > 响应数据
 
@@ -627,15 +627,15 @@ String senderPrivateKey = "priSPKnDue7AJ42gt7acy4AVaobGJtM871r1eukZ2M6eeW5LxG";
 String key = "20210902-01";
 String value = "metadata-20210902-01";
 
-BIFAccountSetMetadataRequest request = new BIFAccountSetMetadataRequest();
+BIFAccountSetMetadatasRequest request = new BIFAccountSetMetadatasRequest();
 request.setSenderAddress(senderAddress);
 request.setPrivateKey(senderPrivateKey);
 request.setKey(key);
 request.setValue(value);
-request.setMetadata("set metadata");
+request.setRemarks("set metadata");
 
-// 调用 setMetadata 接口
-BIFAccountSetMetadataResponse response = sdk.getBIFAccountService().setMetadata(request);
+// 调用 setMetadatas 接口
+BIFAccountSetMetadatasResponse response = sdk.getBIFAccountService().setMetadatas(request);
 if (response.getErrorCode() == 0) {
     System.out.println(JSON.toJSONString(response.getResult(), true));
 } else {
@@ -643,16 +643,16 @@ if (response.getErrorCode() == 0) {
 }
 ```
 
-### 4.3.6 getAccountMetadata
+### 4.3.6 getAccountMetadatas
 
 > 接口说明
 
-   	该接口用于获取指定账户的metadata信息。
+   	该接口用于获取指定账户的metadatas信息。
 
 > 调用方法
 
 ```java
-BIFAccountGetMetadataResponse getAccountMetadata(BIFAccountGetMetadataRequest);
+BIFAccountGetMetadatasResponse getAccountMetadatas(BIFAccountGetMetadatasRequest);
 ```
 
 > 请求参数
@@ -664,12 +664,12 @@ BIFAccountGetMetadataResponse getAccountMetadata(BIFAccountGetMetadataRequest);
 
 > 响应数据
 
-| 参数              | 类型   | 描述             |
-| ----------------- | ------ | ---------------- |
-| metadatas         | object | 账户             |
-| metadatas.key     | String | metadata的关键词 |
-| metadatas.value   | String | metadata的内容   |
-| metadatas.version | Long   | metadata的版本   |
+| 参数                 | 类型     | 描述             |
+| -------------------- | -------- | ---------------- |
+| metadatas            | object[] | 账户             |
+| metadatas[i].key     | String   | metadata的关键词 |
+| metadatas[i].value   | String   | metadata的内容   |
+| metadatas[i].version | Long     | metadata的版本   |
 
 
 > 错误码
@@ -689,13 +689,13 @@ BIFAccountGetMetadataResponse getAccountMetadata(BIFAccountGetMetadataRequest);
 ```java
 // 初始化请求参数
 String accountAddress = "did:bid:ef26wZymU7Vyc74S5TBrde8rAu6rnLJwN";
-BIFAccountGetMetadataRequest request = new BIFAccountGetMetadataRequest();
+BIFAccountGetMetadatasRequest request = new BIFAccountGetMetadatasRequest();
 request.setAddress(accountAddress);
 request.setKey("20210820-01");
 
 // 调用getAccountMetadata接口
-BIFAccountGetMetadataResponse response =
-sdk.getBIFAccountService().getAccountMetadata(request);
+BIFAccountGetMetadatasResponse response =
+sdk.getBIFAccountService().getAccountMetadatas(request);
 if (response.getErrorCode() == 0) {
     BIFAccountGetMetadataResult result = response.getResult();
     System.out.println(JSON.toJSONString(result, true));
@@ -723,7 +723,7 @@ BIFAccountSetPrivilegeResponse setPrivilege(BIFAccountSetPrivilegeRequest);
 | senderAddress           | string | 必填，交易源账号，即交易的发起方                             |
 | privateKey              | String | 必填，交易源账户私钥                                         |
 | ceilLedgerSeq           | Long   | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| metadata                | String | 可选，用户自定义给交易的备注，16进制格式                     |
+| remarks                 | String | 可选，用户自定义给交易的备注                                 |
 | signers                 | list   | 选填，签名者权重列表                                         |
 | signers.address         | String | 签名者区块链账户地址                                         |
 | signers.weight          | Long   | 为签名者设置权重值                                           |
@@ -1112,15 +1112,14 @@ BIFContractCallResponse contractQuery(BIFContractCallRequest);
 
 > 错误码
 
-| 异常                                      | 错误码 | 描述                                                      |
-| ----------------------------------------- | ------ | --------------------------------------------------------- |
-| INVALID_SOURCEADDRESS_ERROR               | 11002  | Invalid sourceAddress                                     |
-| INVALID_CONTRACTADDRESS_ERROR             | 11037  | Invalid contract address                                  |
-| CONTRACTADDRESS_CODE_BOTH_NULL_ERROR      | 11063  | ContractAddress and code cannot be empty at the same time |
-| SOURCEADDRESS_EQUAL_CONTRACTADDRESS_ERROR | 11040  | SourceAddress cannot be equal to contractAddress          |
-| REQUEST_NULL_ERROR                        | 12001  | Request parameter cannot be null                          |
-| CONNECTNETWORK_ERROR                      | 11007  | Failed to connect to the network                          |
-| SYSTEM_ERROR                              | 20000  | System error                                              |
+| 异常                                      | 错误码 | 描述                                             |
+| ----------------------------------------- | ------ | ------------------------------------------------ |
+| INVALID_SOURCEADDRESS_ERROR               | 11002  | Invalid sourceAddress                            |
+| INVALID_CONTRACTADDRESS_ERROR             | 11037  | Invalid contract address                         |
+| SOURCEADDRESS_EQUAL_CONTRACTADDRESS_ERROR | 11040  | SourceAddress cannot be equal to contractAddress |
+| REQUEST_NULL_ERROR                        | 12001  | Request parameter cannot be null                 |
+| CONNECTNETWORK_ERROR                      | 11007  | Failed to connect to the network                 |
+| SYSTEM_ERROR                              | 20000  | System error                                     |
 
 > 示例
 
@@ -1160,7 +1159,7 @@ BIFContractInvokeResponse contractInvoke(BIFContractInvokeRequest);
 | feeLimit        | Long   | 可选，交易花费的手续费，默认1000000L                         |
 | privateKey      | String | 必填，交易源账户私钥                                         |
 | ceilLedgerSeq   | Long   | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| metadata        | String | 可选，用户自定义给交易的备注，16进制格式                     |
+| remarks         | String | 可选，用户自定义给交易的备注                                 |
 | contractAddress | String | 必填，合约账户地址                                           |
 | BIFAmount       | Long   | 必填，转账金额                                               |
 | input           | String | 选填，待触发的合约的main()入参                               |
@@ -1199,7 +1198,7 @@ request.setSenderAddress(senderAddress);
 request.setPrivateKey(senderPrivateKey);
 request.setContractAddress(contractAddress);
 request.setBIFAmount(amount);
-request.setMetadata("contract invoke");
+request.setRemarks("contract invoke");
 
 // 调用 contractInvoke 接口
 BIFContractInvokeResponse response = sdk.getBIFContractService().contractInvoke(request);
@@ -1310,7 +1309,7 @@ BIFTransactionPrivateContractCreateResponse privateContractCreate(BIFTransaction
 | privateKey    | String   | 必填，交易源账户私钥                                         |
 | ceilLedgerSeq | Long     | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
 | metadata      | String   | 可选，用户自定义给交易的备注，16进制格式                     |
-| type          | Integer  | 必填，合约的语种                                             |
+| type          | Integer  | 可选，合约的语种                                             |
 | payload       | String   | 必填，对应语种的合约代码                                     |
 | from          | String   | 必填，发起方加密机公钥                                       |
 | to            | String[] | 必填，接收方加密机公钥                                       |
@@ -1832,7 +1831,8 @@ if (response.getErrorCode() == 0) {
 | INVALID_OPERATION_TYPE_ERROR              | 11019  | Operation type must be between 1 and 100                     |
 | INVALID_TYPE_THRESHOLD_ERROR              | 11020  | TypeThreshold must be between 0 and Long.MAX_VALUE           |
 | INVALID_AMOUNT_ERROR                      | 11024  | Amount must be between 0 and Long.MAX_VALUE                  |
-| INVALID_GAS_AMOUNT_ERROR                  | 11026  | BIFAmount must be between 0 and Long.MAX_VALUE               |
+| INVALID_CONTRACT_HASH_ERROR               | 11025  | Invalid transaction hash to create contract                  |
+| INVALID_GAS_AMOUNT_ERROR                  | 11026  | bifAmount must be between 0 and Long.MAX_VALUE               |
 | INVALID_ISSUER_ADDRESS_ERROR              | 11027  | Invalid issuer address                                       |
 | INVALID_CONTRACTADDRESS_ERROR             | 11037  | Invalid contract address                                     |
 | CONTRACTADDRESS_NOT_CONTRACTACCOUNT_ERROR | 11038  | contractAddress is not a contract account                    |
@@ -1857,7 +1857,6 @@ if (response.getErrorCode() == 0) {
 | INVALID_BLOCKNUMBER_ERROR                 | 11060  | BlockNumber must be bigger than 0                            |
 | PUBLICKEY_NULL_ERROR                      | 11061  | PublicKey cannot be empty                                    |
 | URL_EMPTY_ERROR                           | 11062  | Url cannot be empty                                          |
-| CONTRACTADDRESS_CODE_BOTH_NULL_ERROR      | 11063  | ContractAddress and code cannot be empty at the same time    |
 | INVALID_OPTTYPE_ERROR                     | 11064  | OptType must be between 0 and 2                              |
 | GET_ALLOWANCE_ERROR                       | 11065  | Failed to get allowance                                      |
 | SIGNATURE_EMPTY_ERROR                     | 11067  | The signatures cannot be empty                               |
