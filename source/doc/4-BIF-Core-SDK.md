@@ -345,16 +345,16 @@ System.out.println();
 
 ​		账户服务接口主要是账户相关的接口，目前有8个接口：
 
-| 序号 | 接口               | 说明                                 |
-| ---- | ------------------ | ------------------------------------ |
-| 1    | createAccount      | 生成主链数字身份                     |
-| 2    | getAccount         | 该接口用于获取指定的账户信息         |
-| 3    | getNonce           | 该接口用于获取指定账户的nonce值      |
-| 4    | getAccountBalance  | 该接口用于获取指定账户的星火令的余额 |
-| 5    | setMetadata        | 设置metadata                         |
-| 6    | getAccountMetadata | 该接口用于获取指定账户的metadata信息 |
-| 7    | setPrivilege       | 设置权限                             |
-| 8    | getAccountPriv     | 获取账户权限                         |
+| 序号 | 接口                | 说明                                  |
+| ---- | ------------------- | ------------------------------------- |
+| 1    | createAccount       | 生成主链数字身份                      |
+| 2    | getAccount          | 该接口用于获取指定的账户信息          |
+| 3    | getNonce            | 该接口用于获取指定账户的nonce值       |
+| 4    | getAccountBalance   | 该接口用于获取指定账户的星火令的余额  |
+| 5    | setMetadatas        | 设置metadatas                         |
+| 6    | getAccountMetadatas | 该接口用于获取指定账户的metadatas信息 |
+| 7    | setPrivilege        | 设置权限                              |
+| 8    | getAccountPriv      | 获取账户权限                          |
 
 ### 4.3.1 createAccount
 
@@ -377,7 +377,7 @@ BIFCreateAccountResponse createAccount(BIFCreateAccountRequest);
 | senderAddress | string | 必填，交易源账号，即交易的发起方                             |
 | privateKey    | String | 必填，交易源账户私钥                                         |
 | ceilLedgerSeq | Long   | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| metadata      | String | 可选，用户自定义给交易的备注，16进制格式                     |
+| remarks       | String | 可选，用户自定义给交易的备注                                 |
 | destAddress   | String | 必填，目标账户地址                                           |
 | initBalance   | Long   | 必填，初始化星火令，单位PT，1 星火令 = 10^8 PT, 大小(0, Long.MAX_VALUE] |
 
@@ -414,7 +414,7 @@ request.setSenderAddress(senderAddress);
 request.setPrivateKey(senderPrivateKey);
 request.setDestAddress(destAddress);
 request.setInitBalance(initBalance);
-request.setMetadata("init account");
+request.setRemarks("init account");
 
 // 调用 createAccount 接口
 BIFCreateAccountResponse response = sdk.getBIFAccountService().createAccount(request);
@@ -578,7 +578,7 @@ if (0 == response.getErrorCode()) {
 
 > 接口说明
 
-   	该接口用于修改账户的metadata信息。
+   	该接口用于修改账户的metadatas信息。
 
 > 调用方法
 
@@ -660,16 +660,16 @@ BIFAccountGetMetadatasResponse getAccountMetadatas(BIFAccountGetMetadatasRequest
 | 参数    | 类型   | 描述                                                         |
 | ------- | ------ | ------------------------------------------------------------ |
 | address | String | 必填，待查询的账户地址                                       |
-| key     | String | 选填，metadata关键字，长度限制[1, 1024]，有值为精确查找，无值为全部查找 |
+| key     | String | 选填，metadatas关键字，长度限制[1, 1024]，有值为精确查找，无值为全部查找 |
 
 > 响应数据
 
-| 参数                 | 类型     | 描述             |
-| -------------------- | -------- | ---------------- |
-| metadatas            | object[] | 账户             |
-| metadatas[i].key     | String   | metadata的关键词 |
-| metadatas[i].value   | String   | metadata的内容   |
-| metadatas[i].version | Long     | metadata的版本   |
+| 参数                 | 类型     | 描述              |
+| -------------------- | -------- | ----------------- |
+| metadatas            | object[] | 账户              |
+| metadatas[i].key     | String   | metadatas的关键词 |
+| metadatas[i].value   | String   | metadatas的内容   |
+| metadatas[i].version | Long     | metadatas的版本   |
 
 
 > 错误码
@@ -679,7 +679,7 @@ BIFAccountGetMetadatasResponse getAccountMetadatas(BIFAccountGetMetadatasRequest
 | INVALID_ADDRESS_ERROR | 11006  | Invalid address                              |
 | REQUEST_NULL_ERROR    | 12001  | Request parameter cannot be null             |
 | CONNECTNETWORK_ERROR  | 11007  | Failed to connect to the network             |
-| NO_METADATA_ERROR     | 11010  | The account does not have the metadata       |
+| NO_METADATAS_ERROR    | 11010  | The account does not have the metadatas      |
 | INVALID_DATAKEY_ERROR | 11011  | The length of key must be between 1 and 1024 |
 | SYSTEM_ERROR          | 20000  | System error                                 |
 
@@ -693,11 +693,11 @@ BIFAccountGetMetadatasRequest request = new BIFAccountGetMetadatasRequest();
 request.setAddress(accountAddress);
 request.setKey("20210820-01");
 
-// 调用getAccountMetadata接口
+// 调用getAccountMetadatas接口
 BIFAccountGetMetadatasResponse response =
 sdk.getBIFAccountService().getAccountMetadatas(request);
 if (response.getErrorCode() == 0) {
-    BIFAccountGetMetadataResult result = response.getResult();
+    BIFAccountGetMetadatasResult result = response.getResult();
     System.out.println(JsonUtils.toJSONString(result, true));
 } else {
     System.out.println("error:      " + response.getErrorDesc());
@@ -768,7 +768,7 @@ request.setSigners(signers);
 request.setTxThreshold(txThreshold);
 request.setMasterWeight(masterWeight);
 request.setTypeThresholds(typeThresholds);
-request.setMetadata("set privilege");
+request.setRemarks("set privilege");
 
 // 调用 setPrivilege 接口
 BIFAccountSetPrivilegeResponse response = sdk.getBIFAccountService().setPrivilege(request);
@@ -922,7 +922,7 @@ BIFContractCreateResponse contractCreate(BIFContractCreateRequest);
 | feeLimit      | Long    | 可选，交易花费的手续费，默认1000000L                         |
 | privateKey    | String  | 必填，交易源账户私钥                                         |
 | ceilLedgerSeq | Long    | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| metadata      | String  | 可选，用户自定义给交易的备注，16进制格式                     |
+| remarks       | String  | 可选，用户自定义给交易的备注                                 |
 | initBalance   | Long    | 必填，给合约账户的初始化星火令，单位PT，1 星火令 = 10^8 PT, 大小限制[1, Long.MAX_VALUE] |
 | type          | Integer | 选填，合约的类型，默认是0 , 0: javascript，1 :evm 。         |
 | payload       | String  | 必填，对应语种的合约代码                                     |
@@ -962,7 +962,7 @@ request.setSenderAddress(senderAddress);
 request.setPrivateKey(senderPrivateKey);
 request.setInitBalance(initBalance);
 request.setPayload(payload);
-request.setMetadata("create contract");
+request.setRemarks("create contract");
 request.setType(0);
 request.setFeeLimit(1000000000L);
 
@@ -1240,7 +1240,7 @@ BIFTransactionGasSendResponse gasSend(BIFTransactionGasSendRequest);
 | senderAddress | string | 必填，交易源账号，即交易的发起方                             |
 | privateKey    | String | 必填，交易源账户私钥                                         |
 | ceilLedgerSeq | Long   | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| metadata      | String | 可选，用户自定义给交易的备注，16进制格式                     |
+| remarks       | String | 可选，用户自定义给交易的备注                                 |
 | destAddress   | String | 必填，发起方地址                                             |
 | amount        | Long   | 必填，转账金额                                               |
 
@@ -1277,7 +1277,7 @@ request.setSenderAddress(senderAddress);
 request.setPrivateKey(senderPrivateKey);
 request.setDestAddress(destAddress);
 request.setAmount(amount);
-request.setMetadata("PT send");
+request.setRemarks("PT send");
 
 // 调用 gasSend 接口
 BIFTransactionGasSendResponse response = sdk.getBIFTransactionService().gasSend(request);
@@ -1309,7 +1309,7 @@ BIFTransactionPrivateContractCreateResponse privateContractCreate(BIFTransaction
 | senderAddress | string   | 必填，交易源账号，即交易的发起方                             |
 | privateKey    | String   | 必填，交易源账户私钥                                         |
 | ceilLedgerSeq | Long     | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| metadata      | String   | 可选，用户自定义给交易的备注，16进制格式                     |
+| remarks       | String   | 可选，用户自定义给交易的备注                                 |
 | type          | Integer  | 可选，合约的语种                                             |
 | payload       | String   | 必填，对应语种的合约代码                                     |
 | from          | String   | 必填，发起方加密机公钥                                       |
@@ -1350,7 +1350,7 @@ request.setPrivateKey(senderPrivateKey);
 request.setPayload(payload);
 request.setFrom(from);
 request.setTo(to);
-request.setMetadata("init account");
+request.setRemarks("init account");
 
 // 调用 privateContractCreate 接口
 BIFTransactionPrivateContractCreateResponse response = sdk.getBIFTransactionService().privateContractCreate(request);
@@ -1392,7 +1392,7 @@ BIFTransactionPrivateContractCallResponse privateContractCall(BIFTransactionPriv
 | senderAddress | string   | 必填，交易源账号，即交易的发起方                             |
 | privateKey    | String   | 必填，交易源账户私钥                                         |
 | ceilLedgerSeq | Long     | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| metadata      | String   | 可选，用户自定义给交易的备注，16进制格式                     |
+| remarks       | String   | 可选，用户自定义给交易的备注                                 |
 | destAddress   | String   | 必填，发起方地址                                             |
 | type          | Integer  | 必填，合约的语种                                             |
 | input         | String   | 必填，待触发的合约的main()入参                               |
@@ -1436,7 +1436,7 @@ request.setInput(input);
 request.setFrom(from);
 request.setTo(to);
 request.setDestAddress(destAddress);
-request.setMetadata("private Contract Call");
+request.setRemarks("private Contract Call");
 
 // 调用 privateContractCall 接口
 BIFTransactionPrivateContractCallResponse response = sdk.getBIFTransactionService().privateContractCall(request);
@@ -1885,7 +1885,7 @@ if (response.getErrorCode() == 0) {
 | INVALID_ADDRESS_ERROR                     | 11006  | Invalid address                                              |
 | CONNECTNETWORK_ERROR                      | 11007  | Failed to connect to the network                             |
 | INVALID_ISSUE_AMOUNT_ERROR                | 11008  | Amount of the token to be issued must be between 1 and Long.MAX_VALUE |
-| NO_METADATA_ERROR                         | 11010  | The account does not have the metadata                       |
+| NO_METADATAS_ERROR                        | 11010  | The account does not have the metadatas                      |
 | INVALID_DATAKEY_ERROR                     | 11011  | The length of key must be between 1 and 1024                 |
 | INVALID_DATAVALUE_ERROR                   | 11012  | The length of value must be between 0 and 256000             |
 | INVALID_DATAVERSION_ERROR                 | 11013  | The version must be equal to or greater than 0               |
