@@ -233,10 +233,10 @@ String password = "test1234";
 int version = (int) Math.pow(2, 16);
 //方法一
 String keyStore = KeyStore.generateKeyStore(password,encPrivateKey, 16384, 8, 1, version);
-System.out.println(JSON.toJSONString(keyStore));
+System.out.println(JsonUtils.toJSONString(keyStore));
 //方法二
  KeyStoreEty keyStore1 = KeyStore.generateKeyStore(password, encPrivateKey, version);
-System.out.println(JSON.toJSONString(keyStore1));
+System.out.println(JsonUtils.toJSONString(keyStore1));
 
 ```
 
@@ -419,7 +419,7 @@ request.setMetadata("init account");
 // 调用 createAccount 接口
 BIFCreateAccountResponse response = sdk.getBIFAccountService().createAccount(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error:      " + response.getErrorDesc());
 }
@@ -471,7 +471,7 @@ request.setAddress(accountAddress);
 // 调用 getAccount 接口
 BIFAccountGetInfoResponse response = sdk.getBIFAccountService().getAccount(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error: " + response.getErrorDesc());
 }
@@ -568,7 +568,7 @@ request.setAddress(accountAddress);
 
 // 调用 getAccountBalance 接口
 BIFAccountGetBalanceResponse response = sdk.getBIFAccountService().getAccountBalance(request);
-System.out.println(JSON.toJSONString(response, true));
+System.out.println(JsonUtils.toJSONString(response, true));
 if (0 == response.getErrorCode()) {
     System.out.println("PT balance：" + ToBaseUnit.ToGas(response.getResult().getBalance().toString()) + "PT");
 }
@@ -637,7 +637,7 @@ request.setRemarks("set metadata");
 // 调用 setMetadatas 接口
 BIFAccountSetMetadatasResponse response = sdk.getBIFAccountService().setMetadatas(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error:      " + response.getErrorDesc());
 }
@@ -698,7 +698,7 @@ BIFAccountGetMetadatasResponse response =
 sdk.getBIFAccountService().getAccountMetadatas(request);
 if (response.getErrorCode() == 0) {
     BIFAccountGetMetadataResult result = response.getResult();
-    System.out.println(JSON.toJSONString(result, true));
+    System.out.println(JsonUtils.toJSONString(result, true));
 } else {
     System.out.println("error:      " + response.getErrorDesc());
 }
@@ -773,7 +773,7 @@ request.setMetadata("set privilege");
 // 调用 setPrivilege 接口
 BIFAccountSetPrivilegeResponse response = sdk.getBIFAccountService().setPrivilege(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error:      " + response.getErrorDesc());
 }
@@ -799,19 +799,19 @@ BIFAccountPrivResponse getAccountPriv(BIFAccountPrivRequest);
 
 > 响应数据
 
-| 参数                                        | 类型   | 描述                   |
-| ------------------------------------------- | ------ | ---------------------- |
-| address                                     | String | 账户地址               |
-| priv                                        | Object | 账户权限               |
-| Priv.masterWeight                           | Object | 账户自身权重，大小限制 |
-| Priv.signers                                | Object | 签名者权重列表         |
-| Priv.signers[i].address                     | String | 签名者区块链账户地址   |
-| Priv.signers[i].weight                      | Long   | 签名者权重，大小限制   |
-| Priv.Thresholds                             | Object |                        |
-| Priv.Thresholds.txThreshold                 | Long   | 交易默认门限，大小限制 |
-| Priv.Thresholds.typeThresholds              | Object | 不同类型交易的门限     |
-| Priv.Thresholds.typeThresholds[i].type      | Long   | 操作类型，必须大于0    |
-| Priv.Thresholds.typeThresholds[i].threshold | Long   | 门限值，大小限制       |
+| 参数                                        | 类型     | 描述                   |
+| ------------------------------------------- | -------- | ---------------------- |
+| address                                     | String   | 账户地址               |
+| priv                                        | Object   | 账户权限               |
+| Priv.masterWeight                           | Object   | 账户自身权重，大小限制 |
+| Priv.signers                                | Object   | 签名者权重列表         |
+| Priv.signers[i].address                     | String   | 签名者区块链账户地址   |
+| Priv.signers[i].weight                      | Long     | 签名者权重，大小限制   |
+| Priv.Thresholds                             | Object   |                        |
+| Priv.Thresholds.txThreshold                 | Long     | 交易默认门限，大小限制 |
+| Priv.Thresholds.typeThresholds              | Object[] | 不同类型交易的门限     |
+| Priv.Thresholds.typeThresholds[i].type      | Long     | 操作类型，必须大于0    |
+| Priv.Thresholds.typeThresholds[i].threshold | Long     | 门限值，大小限制       |
 
 > 错误码
 
@@ -834,7 +834,7 @@ request.setAddress(accountAddress);
 BIFAccountPrivResponse response = sdk.getBIFAccountService().getAccountPriv(request);
 if (response.getErrorCode() == 0) {
     BIFAccountPrivResult result = response.getResult();
-    System.out.println(JSON.toJSONString(result, true));
+    System.out.println(JsonUtils.toJSONString(result, true));
 } else {
     System.out.println("error: " + response.getErrorDesc());
 }
@@ -969,7 +969,7 @@ request.setFeeLimit(1000000000L);
 // 调用 contractCreate 接口
 BIFContractCreateResponse response = sdk.getBIFContractService().contractCreate(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error:      " + response.getErrorDesc());
 }
@@ -1022,7 +1022,7 @@ request.setContractAddress("did:bid:efiBacNvVSnr5QxgB282XGWkg4RXLLxL");
 // 调用 getContractInfo 接口
 BIFContractGetInfoResponse response = sdk.getBIFContractService().getContractInfo(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error: " + response.getErrorDesc());
 }
@@ -1077,7 +1077,7 @@ request.setHash(hash);
 // 调用 getContractAddress 接口
 BIFContractGetAddressResponse response = sdk.getBIFContractService().getContractAddress(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error: " + response.getErrorDesc());
 }
@@ -1133,7 +1133,7 @@ request.setContractAddress(contractAddress);
 BIFContractCallResponse response = sdk.getBIFContractService().contractQuery(request);
 if (response.getErrorCode() == 0) {
     BIFContractCallResult result = response.getResult();
-    System.out.println(JSON.toJSONString(result, true));
+    System.out.println(JsonUtils.toJSONString(result, true));
 } else {
     System.out.println("error: " + response.getErrorDesc());
 }
@@ -1203,7 +1203,7 @@ request.setRemarks("contract invoke");
 // 调用 contractInvoke 接口
 BIFContractInvokeResponse response = sdk.getBIFContractService().contractInvoke(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error:      " + response.getErrorDesc());
 }
@@ -1219,6 +1219,7 @@ if (response.getErrorCode() == 0) {
 | 2    | privateContractCreate | 私有化交易-合约创建                |
 | 3    | privateContractCall   | 私有化交易-合约调用                |
 | 4    | getTransactionInfo    | 该接口用于实现根据交易hash查询交易 |
+| 5    | BIFSubmit             | 提交交易                           |
 
 ### 4.5.1 gasSend
 
@@ -1281,7 +1282,7 @@ request.setMetadata("PT send");
 // 调用 gasSend 接口
 BIFTransactionGasSendResponse response = sdk.getBIFTransactionService().gasSend(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error:      " + response.getErrorDesc());
 }
@@ -1354,9 +1355,9 @@ request.setMetadata("init account");
 // 调用 privateContractCreate 接口
 BIFTransactionPrivateContractCreateResponse response = sdk.getBIFTransactionService().privateContractCreate(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
-    System.out.println("error:      " + JSON.toJSONString(response));
+    System.out.println("error:      " + JsonUtils.toJSONString(response));
     return;
 }
 
@@ -1366,7 +1367,7 @@ transactionRequest.setHash(response.getResult().getHash());
 // 调用getTransactionInfo接口
 BIFTransactionGetInfoResponse transactionResponse = sdk.getBIFTransactionService().getTransactionInfo(transactionRequest);
 if (transactionResponse.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(transactionResponse.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(transactionResponse.getResult(), true));
 } else {
     System.out.println("error: " + transactionResponse.getErrorDesc());
 }
@@ -1440,7 +1441,7 @@ request.setMetadata("private Contract Call");
 // 调用 privateContractCall 接口
 BIFTransactionPrivateContractCallResponse response = sdk.getBIFTransactionService().privateContractCall(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error:      " + response.getErrorDesc());
     return;
@@ -1452,7 +1453,7 @@ transactionRequest.setHash(response.getResult().getHash());
 // 调用getTransactionInfo接口
 BIFTransactionGetInfoResponse transactionResponse = sdk.getBIFTransactionService().getTransactionInfo(transactionRequest);
 if (transactionResponse.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(transactionResponse.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(transactionResponse.getResult(), true));
 } else {
     System.out.println("error: " + transactionResponse.getErrorDesc());
 }
@@ -1513,13 +1514,77 @@ request.setHash("6fd10128e0f1e3f6565542303ca308d26f70c7638ec3885141c5cdb72583d18
 // 调用 getTransactionInfo 接口
 BIFTransactionGetInfoResponse response = sdk.getBIFTransactionService().getTransactionInfo(request);
 if (response.getErrorCode() == 0) {
-    System.out.println(JSON.toJSONString(response.getResult(), true));
+    System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 } else {
     System.out.println("error: " + response.getErrorDesc());
 }
 ```
 
-## 4.6 区块服务接口列表
+### 4.5.5 BIFSubmit
+
+> 接口说明
+
+   	该接口用于交易提交。
+
+> 调用方法
+
+```java
+BIFTransactionSubmitResponse BIFSubmit(BIFTransactionSubmitRequest);
+```
+
+> 请求参数
+
+| 参数            | 类型   | 描述             |
+| --------------- | ------ | ---------------- |
+| transactionBlob | String | 必填，交易blob   |
+| signData        | String | 必填，签名数据   |
+| publicKey       | String | 必填，签名者公钥 |
+
+> 响应数据
+
+| 参数 | 类型   | 描述     |
+| ---- | ------ | -------- |
+| hash | String | 交易hash |
+
+> 错误码
+
+| 异常                        | 错误码 | 描述                             |
+| --------------------------- | ------ | -------------------------------- |
+| INVALID_SERIALIZATION_ERROR | 11056  | Invalid serialization            |
+| SIGNATURE_EMPTY_ERROR       | 11067  | The signatures cannot be empty   |
+| SIGNDATA_NULL_ERROR         | 11059  | SignData cannot be empty         |
+| PUBLICKEY_NULL_ERROR        | 11061  | PublicKey cannot be empty        |
+| REQUEST_NULL_ERROR          | 12001  | Request parameter cannot be null |
+| SYSTEM_ERROR                | 20000  | System error                     |
+
+> 示例
+
+```Java
+  // 初始化参数
+  String senderPrivateKey = "priSPKkWVk418PKAS66q4bsiE2c4dKuSSafZvNWyGGp2sJVtXL";
+  //序列化交易
+  String transactionBlob ="";
+  //签名
+  byte[] signBytes = PrivateKeyManager.sign(HexFormat.hexToByte(transactionBlob), senderPrivateKey);
+  String publicKey = PrivateKeyManager.getEncPublicKey(senderPrivateKey);
+  //提交交易
+  BIFTransactionSubmitRequest submitRequest = new BIFTransactionSubmitRequest();
+     submitRequest.setTransactionBlob(transactionBlob);
+     submitRequest.setPublicKey(publicKey);
+     submitRequest.setSignData(HexFormat.byteToHex(signBytes));
+  // 调用bifSubmit接口
+  BIFTransactionSubmitResponse response = sdk.getBIFTransactionService().BIFSubmit(submitRequest);
+     if (response.getErrorCode() == 0) {
+          System.out.println(JsonUtils.toJSONString(response.getResult()));
+      } else {
+          System.out.println("error: " + response.getErrorDesc());
+      }
+
+```
+
+
+
+## 4.6 区块服务接口列表 
 
 ​		区块服务接口主要是区块相关的接口，目前有6个接口：
 
@@ -1564,7 +1629,7 @@ BIFBlockGetNumberResponse getBlockNumber();
 // 调用getBlockNumber接口
 BIFBlockGetNumberResponse response = sdk.getBIFBlockService().getBlockNumber();
 if(0 == response.getErrorCode()){
-   System.out.println(JSON.toJSONString(response.getResult(), true));
+   System.out.println(JsonUtils.toJSONString(response.getResult(), true));
 }else{
    System.out.println("error: " + response.getErrorDesc());
 }
@@ -1614,9 +1679,9 @@ request.setBlockNumber(blockNumber);
 // 调用 getTransactions 接口
 BIFBlockGetTransactionsResponse response = sdk.getBIFBlockService().getTransactions(request);
 if (0 == response.getErrorCode()) {
-    System.out.println(JSON.toJSONString(response, true));
+    System.out.println(JsonUtils.toJSONString(response, true));
 } else {
-    System.out.println("失败\n" + JSON.toJSONString(response, true));
+    System.out.println("失败\n" + JsonUtils.toJSONString(response, true));
 }
 ```
 
@@ -1667,7 +1732,7 @@ blockGetInfoRequest.setBlockNumber(10L);
 BIFBlockGetInfoResponse lockGetInfoResponse = sdk.getBIFBlockService().getBlockInfo(blockGetInfoRequest);
 if (lockGetInfoResponse.getErrorCode() == 0) {
     BIFBlockGetInfoResult lockGetInfoResult = lockGetInfoResponse.getResult();
-    System.out.println(JSON.toJSONString(lockGetInfoResult, true));
+    System.out.println(JsonUtils.toJSONString(lockGetInfoResult, true));
 } else {
     System.out.println("error: " + lockGetInfoResponse.getErrorDesc());
 }
@@ -1712,7 +1777,7 @@ BIFBlockGetLatestInfoResponse getBlockLatestInfo();
 BIFBlockGetLatestInfoResponse lockGetLatestInfoResponse = sdk.getBIFBlockService().getBlockLatestInfo();
 if (lockGetLatestInfoResponse.getErrorCode() == 0) {
     BIFBlockGetLatestInfoResult lockGetLatestInfoResult = lockGetLatestInfoResponse.getResult();
-    System.out.println(JSON.toJSONString(lockGetLatestInfoResult, true));
+    System.out.println(JsonUtils.toJSONString(lockGetLatestInfoResult, true));
 } else {
     System.out.println(lockGetLatestInfoResponse.getErrorDesc());
 }
@@ -1763,7 +1828,7 @@ request.setBlockNumber(1L);
 BIFBlockGetValidatorsResponse response = sdk.getBIFBlockService().getValidators(request);
 if (response.getErrorCode() == 0) {
     BIFBlockGetValidatorsResult result = response.getResult();
-    System.out.println(JSON.toJSONString(result, true));
+    System.out.println(JsonUtils.toJSONString(result, true));
 } else {
     System.out.println("error: " + response.getErrorDesc());
 }
@@ -1802,7 +1867,7 @@ BIFBlockGetLatestValidatorsResponse getLatestValidators();
 BIFBlockGetLatestValidatorsResponse response = sdk.getBIFBlockService().getLatestValidators();
 if (response.getErrorCode() == 0) {
     BIFBlockGetLatestValidatorsResult result = response.getResult();
-    System.out.println(JSON.toJSONString(result, true));
+    System.out.println(JsonUtils.toJSONString(result, true));
 } else {
     System.out.println("error: " + response.getErrorDesc());
 }
@@ -1850,7 +1915,7 @@ if (response.getErrorCode() == 0) {
 | OPERATIONS_ONE_ERROR                      | 11053  | One of the operations cannot be resolved                     |
 | INVALID_SIGNATURENUMBER_ERROR             | 11054  | SignagureNumber must be between 1 and Integer.MAX_VALUE      |
 | INVALID_HASH_ERROR                        | 11055  | Invalid transaction hash                                     |
-| INVALID_BLOB_ERROR                        | 11056  | Invalid blob                                                 |
+| INVALID_SERIALIZATION_ERROR               | 11056  | Invalid serialization                                        |
 | PRIVATEKEY_NULL_ERROR                     | 11057  | PrivateKeys cannot be empty                                  |
 | PRIVATEKEY_ONE_ERROR                      | 11058  | One of privateKeys is invalid                                |
 | SIGNDATA_NULL_ERROR                       | 11059  | SignData cannot be empty                                     |
