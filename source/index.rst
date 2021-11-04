@@ -15,3 +15,4 @@
    doc/3-Solidity智能合约开发.md
    doc/4-BIF-Core-SDK.md
    doc/5-Contract.md
+   doc/6-订阅服务示例.md
