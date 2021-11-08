@@ -1394,7 +1394,7 @@ BIFTransactionPrivateContractCallResponse privateContractCall(BIFTransactionPriv
 | ceilLedgerSeq | Long     | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
 | remarks       | String   | 可选，用户自定义给交易的备注                                 |
 | destAddress   | String   | 必填，发起方地址                                             |
-| type          | Integer  | 必填，合约的语种                                             |
+| type          | Integer  | 可选，合约的语种（待用）                                     |
 | input         | String   | 必填，待触发的合约的main()入参                               |
 | from          | String   | 必填，发起方加密机公钥                                       |
 | to            | String[] | 必填，接收方加密机公钥                                       |
