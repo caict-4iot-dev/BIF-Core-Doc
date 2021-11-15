@@ -2,6 +2,8 @@
 
 ​		本节详细说明BIF-Core-SDK常用接口文档。星火链提供 JAVA SDK供开发者使用。
 
+​        **github**代码库地址：https://github.com/CAICT-DEV/BIF-Core-SDK
+
 ## 4.1 SDK概述
 
 ### 4.1.1 名词解析
