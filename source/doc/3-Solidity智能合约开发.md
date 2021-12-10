@@ -223,11 +223,11 @@ Binary:
 pragma solidity ^0.4.26;
 
 contract Test {
-	mapping (string => string) public keyMap;
-	function setKey(string key, string val) public{
+	mapping (int256 => string) public keyMap;
+	function setKey(int256 key, string val) public{
 		keyMap[key] = val;
 	}
-	function getKey(string key) public returns(string){
+	function getKey(int256 key) public returns(string){
 		return keyMap[key];
 	}
 }
@@ -320,7 +320,7 @@ public void contractCreate() {
 
 ```json
 {
-	"function":"xxx",//待调用函数声明 入setKey(string,string)，仅包含函数名（形参类型）
+	"function":"xxx",//待调用函数声明 入setKey(int256,string)，仅包含函数名（形参类型）
 	"args":{ 
 		"xxx":""//待调用合约的参数，多个参数使用“，”分隔
 	}
@@ -343,7 +343,7 @@ public void contractInvokeByGas() {
     request.setContractAddress(contractAddress);
     request.setBIFAmount(amount);
     request.setMetadata("contract invoke");
-    request.setInput("{\"function\":\"setKey(string,string)\",\"args\":\"'test','hello world'\"}");
+     request.setInput("{\"function\":\"setKey(int256,string)\",\"args\":\"123,'hello world'\"}");
     // 调用 BIFContractInvoke 接口
     BIFContractInvokeResponse response = sdk.getBIFContractService().contractInvoke(request);
     if (response.getErrorCode() == 0) {
@@ -360,7 +360,7 @@ public void contractInvokeByGas() {
 
 ```json
 {
-	"function":"xxx",//待调用函数声明 入setKey(string,string)，仅包含函数名（形参类型）
+	"function":"xxx",//待调用函数声明 入getKey(int256)，仅包含函数名（形参类型）
 	"args":{ 
 		"xxx":""//待调用合约的参数，多个参数使用“，”分隔
 	},
@@ -379,7 +379,7 @@ public void callContract() {
     // Init request
     BIFContractCallRequest request = new BIFContractCallRequest();
     request.setContractAddress(contractAddress);
-    request.setInput("{\"function\":\"getKey(string)\",\"args\":\"test\",\"return\":\"returns(string)\"}");
+    request.setInput("{\"function\":\"getKey(int256)\",\"args\":123, \"return\":\"returns(string)\"}");
 
     // Call call
     BIFContractCallResponse response = sdk.getBIFContractService().contractQuery(request);

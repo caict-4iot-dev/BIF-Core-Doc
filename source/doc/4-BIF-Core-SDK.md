@@ -1540,7 +1540,7 @@ BIFTransactionSubmitResponse BIFSubmit(BIFTransactionSubmitRequest);
 | --------------- | ------ | ---------------- |
 | transactionBlob | String | 必填，交易blob   |
 | signData        | String | 必填，签名数据   |
-| publicKey       | String | 必填，签名者公钥 |
+| privateKey      | String | 必填，签名者私钥 |
 
 > 响应数据
 
