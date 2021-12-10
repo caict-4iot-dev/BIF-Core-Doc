@@ -24,25 +24,22 @@
 
 + **合约接口说明**
 
-| 接口                                                         | 返回值  | 描述                                                         |
-| ------------------------------------------------------------ | ------- | ------------------------------------------------------------ |
-| name()                                                       | string  | 代币名称获取                                                 |
-| symbol()                                                     | string  | 代币符号获取                                                 |
-| totalSupply()                                                | uint256 | 发行方总代币金额获取                                         |
-| transfer(address to,uint256 value)                           | 无      | 代币转移接口，从自己（创建交易者）账号发送`_value`个代币到 `_to`账号 |
-| allowance(address,address)                                   | 无      | 账号所有者操作列表                                           |
-| transferFrom(address from,address to,uint256 value)          | 无      | 账号之间代币交易转移<br />from 发送者地址<br />to 接收者地址<br />value 转移数额 |
-| approve(address spender,uint256 value)                       | 无      | 设置某个地址（合约）可以创建交易者名义花费的代币数，允许发送者`_spender` 花费不多于 `_value` 个代币 |
-| approveAndCall(address spender,uint256 value,bytes extrData) | 无      | 设置允许一个地址（合约）以我（创建交易者）的名义可最多花费的代币数<br />spender 被授权的地址（合约）<br />value 最大可花费代币数<br />extraData 发送给合约的附加数据 |
-| burn(uint256 value)                                          | 无      | 销毁我（创建交易者）账户中指定个代币                         |
-| burnFrom(address from, uint256 value)                        | 无      | 销毁用户账户中指定个代币                                     |
+| 接口                                                | 返回值  | 描述                                                         |
+| --------------------------------------------------- | ------- | ------------------------------------------------------------ |
+| name()                                              | string  | 代币名称获取                                                 |
+| symbol()                                            | string  | 代币符号获取                                                 |
+| totalSupply()                                       | uint256 | 发行方总代币金额获取                                         |
+| transfer(address to,uint256 value)                  | 无      | 代币转移接口，从自己（创建交易者）账号发送`_value`个代币到 `_to`账号 |
+| allowance(address,address)                          | 无      | 账号所有者操作列表                                           |
+| transferFrom(address from,address to,uint256 value) | 无      | 账号之间代币交易转移<br />from 发送者地址<br />to 接收者地址<br />value 转移数额 |
+| approve(address spender,uint256 value)              | 无      | 设置某个地址（合约）可以创建交易者名义花费的代币数，允许发送者`_spender` 花费不多于 `_value` 个代币 |
+| burn(uint256 value)                                 | 无      | 销毁我（创建交易者）账户中指定个代币                         |
+| burnFrom(address from, uint256 value)               | 无      | 销毁用户账户中指定个代币                                     |
 
 + **合约文件**
 
 ```solidity
 pragma solidity ^0.4.26;
-
-interface tokenRecipient { function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData) public; }
 
 contract TokenERC20 {
     string public name; // ERC20标准
@@ -131,24 +128,6 @@ contract TokenERC20 {
     returns (bool success) {
         allowance[msg.sender][_spender] = _value;
         return true;
-    }
-
-    /**
-     * 设置允许一个地址（合约）以我（创建交易者）的名义可最多花费的代币数。
-     *-非ERC20标准
-     * @param _spender 被授权的地址（合约）
-     * @param _value 最大可花费代币数
-     * @param _extraData 发送给合约的附加数据
-     */
-    function approveAndCall(address _spender, uint256 _value, bytes _extraData)
-    public
-    returns (bool success) {
-        tokenRecipient spender = tokenRecipient(_spender);
-        if (approve(_spender, _value)) {
-            // 通知合约
-            spender.receiveApproval(msg.sender, _value, this, _extraData);
-            return true;
-        }
     }
 
     /**
