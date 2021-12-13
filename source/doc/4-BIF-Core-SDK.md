@@ -67,7 +67,7 @@ Class BIFAccountGetNonceResult {
 ​		调用SDK的接口getInstance来实现，调用如下：
 
 ```java
-String url = "http://192.168.22.121:37002";
+String url = "http://test-bif-core.xinghuo.space";
 BIFSDK sdk = BIFSDK.getInstance(url);
 ```
 
