@@ -2010,7 +2010,269 @@ if (response.getErrorCode() == 0) {
 }
 ```
 
-## 4.7 错误码
+## 4.7 SDK智能合约开发流程
+
+本节给出一个基于Java SDK的完整智能合约开发流程。
+
+**一定要灵活使用星火区块链浏览器 http://test-explorer.bitfactory.cn/, 账户，交易，合约hash都可以在上面搜索查询。**
+
+### 4.7.1 概述
+
+做合约开发，一般需要以下几个步骤：
+
+1. 创建一个账号，并且获得XHT，才能发起后续交易
+2. 编写合约，建议基于javascript编写
+3. 编译和部署合约
+4. 调用和读取合约
+
+### 4.7.2 账号创建
+
+通过调用getBidAndKeyPair()就可以离线创建一个随机地址。
+
+```java
+import cn.bif.model.crypto.KeyPairEntity;
+
+entity = KeyPairEntity.getBidAndKeyPair();
+System.out.printf("public BID %s\n", entity.getEncAddress());
+System.out.printf("private key %s\n", entity.getEncPrivateKey());
+```
+建议将得到的地址和对应私钥都稳妥保存，之后就用这个地址开始后续的开发，私钥一定不能泄露。
+
+### 4.7.3 初始化星火链SDK
+
+**之后的操作都需要链网进行，需要初始化星火链SDK链接到星火链。**
+
+```java
+import cn.bif.api.BIFSDK;
+
+public static final String NODE_URL = "http://test-bif-core.xinghuo.space";
+
+public staitc BIFSDK sdk = BIFSDK.getInstance(NODE_URL);
+```
+
+sdk初始化之后，我们可以通过sdk对象调用链上方法进行开发。
+
+### 4.7.4 查看账户状态
+
+1. 首先我们记录了最开始生成的账户地址和私钥
+
+```java
+public static final String publicKey = "did:bid:efKkF5uKsopAishxkYja4ULRJhrhrJQU";
+public static final String privateKey = "priSPKqB8wCf8GtiKCG1yN3RHPVLbfcXLmkFfHLGjSgrMRD7AJ";
+```
+
+2. 通过星火SDK查看账户状态
+
+```java
+BIFAccountGetInfoRequest infoReq = new BIFAccountGetInfoRequest();
+infoReq.setAddress(publicKey);
+
+BIFAccountGetInfoResponse infoRsp = sdk.getBIFAccountService().getAccount(infoReq);
+
+//current no info about this account
+if (infoRsp.getErrorCode() == 0) {
+    System.out.println(JsonUtils.toJSONString(infoRsp.getResult()));
+} else {
+    System.out.println(infoRsp.getErrorDesc());
+}
+```
+这里会报错，因为该账户还没有过任何操作，所以星火链上没有记录。
+
+所有链上操作都需要耗费星火令(XHT)，因此您需要从其他地方获取XHT到这个账户供操作。
+
+获取星火令之后再查看账户状态，得到正确返回如下：
+
+```json
+{"address":"did:bid:efKkF5uKsopAishxkYja4ULRJhrhrJQU","balance":10000000000,"nonce":0}
+```
+
+### 4.7.5 合约开发
+
+做一个完整的链上合约开发主要包括以下几个部分：
+
+1. 合约编写
+
+合约具体编写可以参考[开发手册](https://bif-core-dev-doc.readthedocs.io/zh_CN/latest/)。这里直接列出写好的javascript智能合约。
+
+```javascript
+"use strict";
+
+function queryById(id) {
+    let data = Chain.load(id);
+    return data;
+}
+
+function query(input) {
+    input = JSON.parse(input);
+    let id = input.id;
+    let object = queryById(id);
+    return object;
+}
+
+function main(input) {
+    input = JSON.parse(input);
+    Chain.store(input.id, input.data);
+}
+
+function init(input) {
+    return;
+}
+```
+
+该合约做的事情比较简单，就是实现了基于key的存储和读取。
+
+2. 合约部署
+
+写完合约后，需要将合约部署到链上(注意需要消耗XHT，确保账号有足够XHT)。示例代码如下：
+
+```java
+//部署合约
+
+//合约代码，注意转义
+String contractCode = "\"use strict\";function queryById(id) {    let data = Chain.load(id);    return data;}function query(input) {    input = JSON.parse(input);    let id = input.id;    let object = queryById(id);    return object;}function main(input) {    input = JSON.parse(input);    Chain.store(input.id, input.data);}function init(input) {    return;}";
+
+BIFContractCreateRequest createCReq = new BIFContractCreateRequest();
+
+//创建方地址和私钥
+createCReq.setSenderAddress(publicKey);
+createCReq.setPrivateKey(privateKey);
+
+//合约初始balance，一般为0
+createCReq.setInitBalance(0L);
+
+//合约代码
+createCReq.setPayload(contractCode);
+
+//标记和type，javascript合约type为0
+createCReq.setRemarks("create contract");
+createCReq.setType(0);
+
+//交易耗费上限
+createCReq.setFeeLimit(300000000L);
+
+BIFContractCreateResponse createCRsp = sdk.getBIFContractService().contractCreate(createCReq);
+if (createCRsp.getErrorCode() == 0) {
+    System.out.println(JsonUtils.toJSONString(createCRsp.getResult()));
+} else {
+    System.out.println(createCRsp.getErrorDesc());
+}
+```
+
+如果部署成功，返回里会拿到这个交易的HASH。
+
+```json
+{"hash":"b25567a482e674d79ac5f9b5f6601f27b676dde90a6a56539053ec882a99854f"}
+```
+
+这里我们记录下这个交易HASH，然后查询生成的合约地址。
+
+3. 合约地址查询
+
+基于刚刚得到的交易HASH查询生成的合约地址:
+
+```java
+BIFContractGetAddressRequest cAddrReq = new BIFContractGetAddressRequest();
+cAddrReq.setHash(cTxHash);
+
+BIFContractGetAddressResponse cAddrRsp = sdk.getBIFContractService().getContractAddress(cAddrReq);
+if (cAddrRsp.getErrorCode() == 0) {
+    System.out.println(JsonUtils.toJSONString(cAddrRsp.getResult()));
+} else {
+    System.out.println(cAddrRsp.getErrorDesc());
+}
+```
+
+收到返回如下: 
+
+```json
+{"contract_address_infos":[{"contract_address":"did:bid:efSvDJivc2A4iqurRkUPzmpT5kB3nkNg","operation_index":0}]}
+```
+
+生成的合约地址即为: did:bid:efSvDJivc2A4iqurRkUPzmpT5kB3nkNg.
+
+3. 合约调用
+
+有了合约地址，我们就可以开始调用合约，这里我们set一个key value对到刚刚合约里，对照我们刚刚javascript合约的main函数，调用的input为:
+
+```json
+{"id":"test", "data": "test"}
+```
+
+也就是在key "test"下写入 "test"值。
+
+合约调用的java代码如下:
+```java
+
+//转义后input
+String input = "{\"id\":\"test\", \"data\": \"test\"}";
+
+BIFContractInvokeRequest cIvkReq = new BIFContractInvokeRequest();
+
+//调用者地址和私钥
+cIvkReq.setSenderAddress(publicKey);
+cIvkReq.setPrivateKey(privateKey);
+
+//合约地址
+cIvkReq.setContractAddress(cAddr);
+
+//调用交易XHT金额
+cIvkReq.setBIFAmount(0L);
+
+//标记
+cIvkReq.setRemarks("contract invoke");
+
+//调用input
+cIvkReq.setInput(input);
+
+BIFContractInvokeResponse cIvkRsp = sdk.getBIFContractService().contractInvoke(cIvkReq);
+if (cIvkRsp.getErrorCode() == 0) {
+    System.out.println(JsonUtils.toJSONString(cIvkRsp.getResult()));
+} else {
+    System.out.println(cIvkRsp.getErrorDesc());
+}
+```
+
+调用成功后，我们又会得到调用交易的HASH：
+
+```json
+{"hash":"c79835265e908f7f06d4fc2c61ef3fd046ae5252675e4671271bd921ad8fde89"}
+```
+
+4. 合约读取
+
+调用成功后，我们还需要读取链上数据，根据我们的javascript合约，读取的input为
+```json
+{"id":"test"}
+```
+表示我们需要读取id "test"下的内容，使用javaSDK的读取代码如下:
+
+```java
+BIFContractCallRequest cCallReq = new BIFContractCallRequest();
+
+String callInput = "{\"id\":\"test\"}";
+cCallReq.setContractAddress(cAddr);
+cCallReq.setInput(callInput);
+
+BIFContractCallResponse cCallRsp = sdk.getBIFContractService().contractQuery(cCallReq);
+
+if (cCallRsp.getErrorCode() == 0) {
+    System.out.println(JsonUtils.toJSONString(cCallRsp.getResult()));
+} else {
+    System.out.println(cCallRsp.getErrorDesc());
+}
+
+```
+
+读取成功的结果如下:
+
+```json
+{"query_rets":[{"result":{"type":"string","value":"test"}}]}
+```
+
+至此，我们就完成了一个完整的合约编写，部署，调用和读取的过程。
+
+
+## 4.8 错误码
 
 | 异常                                      | 错误码 | 描述                                                         |
 | ----------------------------------------- | ------ | ------------------------------------------------------------ |
