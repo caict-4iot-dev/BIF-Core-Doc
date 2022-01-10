@@ -180,6 +180,13 @@ String publicKey = "b0014085888f15e6fdae80827f5ec129f7e9323cf60732e7f8259fa2d68a
 String encAddress = PublicKeyManager.getEncAddress(encPublicKey);
 ```
 
++ **账号地址校验**
+
+```java
+String address = "did:bid:efLrFZCn3wqSrozTG9MkxXbriRmwUHs5";
+boolean isAddress = PublicKeyManager.isAddressValid(address);
+```
+
 + **验签** 
 
 ```java
@@ -306,10 +313,11 @@ System.out.println();
 
 > 请求参数
 
-| 参数          | 类型         | 描述   |
-| ------------- | ------------ | ------ |
-| mnemonicCodes | List<String> | 助记词 |
-| hdPaths       | List<String> | 路径   |
+| 参数          | 类型         | 描述                      |
+| ------------- | ------------ | ------------------------- |
+| KeyType       | String       | 选填，加密类型ED25519/SM2 |
+| mnemonicCodes | List<String> | 必填，助记词              |
+| hdPaths       | List<String> | 必填，路径                |
 
 > 响应数据
 
@@ -336,10 +344,34 @@ mnemonicCodes.add("vessel");
 
 List<String> hdPaths = new ArrayList<>();
 hdPaths.add("M/44/80/0/0/1");
+//方式一
 List<String> privateKeys = Mnemonic.generatePrivateKeys(mnemonicCodes, hdPaths);
-for (String privateKey : privateKeys) {
-   System.out.print(privateKey + " ");
-}
+        for (String privateKey : privateKeys) {
+            if (!PrivateKeyManager.isPrivateKeyValid(privateKey)) {
+                System.out.println("private is invalid");
+                return;
+            }
+            System.out.println(privateKey + " " + PrivateKeyManager.getEncAddress(PrivateKeyManager.getEncPublicKey(privateKey)));
+        }
+//SM2
+ List<String> privateKeysBySM2 = Mnemonic.generatePrivateKeysByCrypto(KeyType.SM2,mnemonicCodes, hdPaths);
+        for (String privateKey : privateKeysBySM2) {
+            if (!PrivateKeyManager.isPrivateKeyValid(privateKey)) {
+                System.out.println("private is invalid");
+                return;
+            }
+            System.out.println("SM2 { privateKey : "+privateKey + " \n encAddress : " + PrivateKeyManager.getEncAddress(PrivateKeyManager.getEncPublicKey(privateKey))+" \n }");
+        }
+
+//ED25519
+ List<String> privateKeysByED25519 = Mnemonic.generatePrivateKeysByCrypto(KeyType.ED25519,mnemonicCodes, hdPaths);
+        for (String privateKey : privateKeysByED25519) {
+            if (!PrivateKeyManager.isPrivateKeyValid(privateKey)) {
+                System.out.println("private is invalid");
+                return;
+            }
+            System.out.println("ED25519  { privateKey : "+privateKey + " \n encAddress : " + PrivateKeyManager.getEncAddress(PrivateKeyManager.getEncPublicKey(privateKey))+" \n }");
+        }
 System.out.println();
 ```
 
@@ -921,11 +953,11 @@ BIFContractCreateResponse contractCreate(BIFContractCreateRequest);
 | 参数          | 类型    | 描述                                                         |
 | ------------- | ------- | ------------------------------------------------------------ |
 | senderAddress | string  | 必填，交易源账号，即交易的发起方                             |
-| feeLimit      | Long    | 可选，交易花费的手续费，默认1000000L                         |
+| feeLimit      | Long    | 选填，交易花费的手续费，默认1000000L                         |
 | privateKey    | String  | 必填，交易源账户私钥                                         |
-| ceilLedgerSeq | Long    | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| remarks       | String  | 可选，用户自定义给交易的备注                                 |
-| initBalance   | Long    | 必填，给合约账户的初始化星火令，单位PT，1 星火令 = 10^8 PT, 大小限制[1, Long.MAX_VALUE] |
+| ceilLedgerSeq | Long    | 选填，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
+| remarks       | String  | 选填，用户自定义给交易的备注                                 |
+| initBalance   | Long    | 选填，给合约账户的初始化星火令，单位PT，1 星火令 = 10^8 PT, 大小限制[1, Long.MAX_VALUE] |
 | type          | Integer | 选填，合约的类型，默认是0 , 0: javascript，1 :evm 。         |
 | payload       | String  | 必填，对应语种的合约代码                                     |
 | initInput     | String  | 选填，合约代码中init方法的入参                               |
@@ -1213,7 +1245,7 @@ if (response.getErrorCode() == 0) {
 
 ## 4.5 交易服务接口列表
 
-​		交易服务接口主要是交易相关的接口，目前有4个接口：
+​		交易服务接口主要是交易相关的接口，目前有6个接口：
 
 | 序号 | 接口                  | 说明                               |
 | ---- | --------------------- | ---------------------------------- |
@@ -1221,7 +1253,8 @@ if (response.getErrorCode() == 0) {
 | 2    | privateContractCreate | 私有化交易-合约创建                |
 | 3    | privateContractCall   | 私有化交易-合约调用                |
 | 4    | getTransactionInfo    | 该接口用于实现根据交易hash查询交易 |
-| 5    | BIFSubmit             | 提交交易                           |
+| 5    | evaluateFee           | 该接口实现交易的费用评估           |
+| 6    | BIFSubmit             | 提交交易                           |
 
 ### 4.5.1 gasSend
 
@@ -1522,7 +1555,109 @@ if (response.getErrorCode() == 0) {
 }
 ```
 
-### 4.5.5 BIFSubmit
+### 4.5.5 evaluateFee
+
+> 接口说明
+
+   	该接口实现交易的费用评估。
+
+> 调用方法
+
+```java
+BIFTransactionGetInfoResponse evaluateFee(BIFTransactionEvaluateFeeRequest);
+```
+
+> 请求参数
+
+| 参数            | 类型                            | 描述                                                         |
+| --------------- | ------------------------------- | ------------------------------------------------------------ |
+| signatureNumber | Integer                         | 选填，待签名者的数量，默认是1，大小限制[1, Integer.MAX_VALUE] |
+| remarks         | String                          | 选填，用户自定义给交易的备注                                 |
+| operation       | [BaseOperation](#BaseOperation) | 必填，待提交的操作，不能为空                                 |
+
+#### BaseOperation
+
+| 序号 | 操作                              | 描述                         |
+| ---- | --------------------------------- | ---------------------------- |
+| 1    | BIFAccountActivateOperation       | 生成主链数字身份             |
+| 2    | BIFAccountSetMetadataOperation    | 修改账户的metadatas信息      |
+| 3    | BIFAccountSetPrivilegeOperation   | 设置权限                     |
+| 4    | BIFContractCreateOperation        | 创建合约（暂不支持EVM 合约） |
+| 5    | BIFContractInvokeOperation        | 合约调用（暂不支持EVM 合约） |
+| 6    | BIFGasSendOperation               | 发起交易                     |
+| 7    | BIFPrivateContractCallOperation   | 私有化交易的合约创建         |
+| 8    | BIFPrivateContractCreateOperation | 私有化交易的合约调用         |
+
+> 响应数据
+
+| 参数 | 类型                | 描述       |
+| ---- | ------------------- | ---------- |
+| txs  | [TestTx](#TestTx)[] | 评估交易集 |
+
+#### TestTx
+
+| 成员变量       | 类型                                        | 描述         |
+| -------------- | ------------------------------------------- | ------------ |
+| transactionEnv | [TestTransactionFees](#TestTransactionFees) | 评估交易费用 |
+
+#### TestTransactionFees
+
+| 成员变量        | 类型                                | 描述     |
+| --------------- | ----------------------------------- | -------- |
+| transactionFees | [TransactionFees](#TransactionFees) | 交易费用 |
+
+#### TransactionFees
+
+| 成员变量 | 类型 | 描述               |
+| -------- | ---- | ------------------ |
+| feeLimit | Long | 交易要求的最低费用 |
+| gasPrice | Long | 交易燃料单价       |
+
+> 错误码
+
+| 异常                          | 错误码 | 描述                                                    |
+| ----------------------------- | ------ | ------------------------------------------------------- |
+| INVALID_SOURCEADDRESS_ERROR   | 11002  | Invalid sourceAddress                                   |
+| OPERATIONS_EMPTY_ERROR        | 11051  | Operations cannot be empty                              |
+| OPERATIONS_ONE_ERROR          | 11053  | One of the operations cannot be resolved                |
+| INVALID_SIGNATURENUMBER_ERROR | 11054  | SignagureNumber must be between 1 and Integer.MAX_VALUE |
+| REQUEST_NULL_ERROR            | 12001  | Request parameter cannot be null                        |
+| SYSTEM_ERROR                  | 20000  | System error                                            |
+
+> 示例
+
+```java
+       // 初始化变量
+        String senderAddresss = "did:bid:efAsXt5zM2Hsq6wCYRMZBS5Q9HvG2EmK";
+        String destAddress = "did:bid:ef14uPsX7XYLzsU4t2rnRrsK2zfUbW3r";
+        Long bifAmount = ToBaseUnit.ToUGas("10.9");
+
+        // 构建sendGas操作
+        BIFGasSendOperation gasSendOperation = new BIFGasSendOperation();
+        gasSendOperation.setSourceAddress(senderAddresss);
+        gasSendOperation.setDestAddress(destAddress);
+        gasSendOperation.setAmount(bifAmount);
+
+        // 初始化评估交易请求参数
+        BIFTransactionEvaluateFeeRequest request = new BIFTransactionEvaluateFeeRequest();
+        request.setOperation(gasSendOperation);
+        request.setSourceAddress(senderAddresss);
+        request.setSignatureNumber(1);
+        request.setRemarks(HexFormat.byteToHex("evaluate fees".getBytes()));
+
+       // 调用evaluateFee接口
+        BIFTransactionEvaluateFeeResponse response = sdk.getBIFTransactionService().evaluateFee(request);
+        if (response.getErrorCode() == 0) {
+            BIFTransactionEvaluateFeeResult result = response.getResult();
+            System.out.println(JsonUtils.toJSONString(result));
+        } else {
+            System.out.println("error: " + response.getErrorDesc());
+        }
+```
+
+
+
+### 4.5.6 BIFSubmit
 
 > 接口说明
 
@@ -1536,11 +1671,11 @@ BIFTransactionSubmitResponse BIFSubmit(BIFTransactionSubmitRequest);
 
 > 请求参数
 
-| 参数            | 类型   | 描述             |
-| --------------- | ------ | ---------------- |
-| transactionBlob | String | 必填，交易blob   |
-| signData        | String | 必填，签名数据   |
-| privateKey      | String | 必填，签名者私钥 |
+| 参数          | 类型   | 描述               |
+| ------------- | ------ | ------------------ |
+| serialization | String | 必填，交易序列化值 |
+| signData      | String | 必填，签名数据     |
+| privateKey    | String | 必填，签名者私钥   |
 
 > 响应数据
 
@@ -1565,13 +1700,13 @@ BIFTransactionSubmitResponse BIFSubmit(BIFTransactionSubmitRequest);
   // 初始化参数
   String senderPrivateKey = "priSPKkWVk418PKAS66q4bsiE2c4dKuSSafZvNWyGGp2sJVtXL";
   //序列化交易
-  String transactionBlob ="";
+  String serialization ="";
   //签名
-  byte[] signBytes = PrivateKeyManager.sign(HexFormat.hexToByte(transactionBlob), senderPrivateKey);
+  byte[] signBytes = PrivateKeyManager.sign(HexFormat.hexToByte(serialization), senderPrivateKey);
   String publicKey = PrivateKeyManager.getEncPublicKey(senderPrivateKey);
   //提交交易
   BIFTransactionSubmitRequest submitRequest = new BIFTransactionSubmitRequest();
-     submitRequest.setTransactionBlob(transactionBlob);
+     submitRequest.setSerialization(serialization);
      submitRequest.setPublicKey(publicKey);
      submitRequest.setSignData(HexFormat.byteToHex(signBytes));
   // 调用bifSubmit接口
