@@ -355,6 +355,10 @@ contract XHERC721  {
 	    fundation = msg.sender; 
     }
     
+    constructor() {
+        fundation = msg.sender;    
+    }
+    
 
     modifier onlyFundation() {
         require(msg.sender == fundation);
@@ -1203,6 +1207,11 @@ contract ERC1155 {
     function TokenERC1155(string memory uri_) public {
         fundation = msg.sender;    
         _setURI(uri_);                         
+    }
+    
+    constructor(string memory uri_) {
+        fundation = msg.sender;    
+        _setURI(uri_);
     }
 
     function uri(uint256) public view  returns (string memory) {
