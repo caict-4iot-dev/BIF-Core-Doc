@@ -282,7 +282,11 @@ public void callContract() {
 
 ## 5.2 ERC721合约
 
+
+
 ​		本节描述通过星火链网实现并部署ERC721智能合约。
+
+
 
 ​		相比于ERC20，ERC721是非同质化代币，也就意味着每个Token都是不一样的，都有自己的唯一性和独特价值，当然这也就意味着它们是不可分割的。有关ERC721标准可以参考[官方文档](https://eips.ethereum.org/EIPS/eip-721)。
 
@@ -314,6 +318,8 @@ public void callContract() {
 | isApprovedForAll(address _owner, address _operator)          | bool    | 查询_operator 是否拥有了 _owner所有NFT的 授权。              |
 
 - **合约文件**
+
+  注意：在实现转账功能时，如果接收方的地址没有拥有者，或者是一个合约地址，那么NFT被转出去之后，就意味着该NFT以后将没有流通的功能了。因此转账的时候，要慎重。若是合约地址，可以采取安全转账的方式，根据ERC165的方式判断该合约是否实现了onERC721Received接口，若是没有实现，则智能合约的执行将被中止，若实现了，说明该合约遵守了ERC721合约的标准，确保以后NFT可以进行流通，则转账继续。目前，在星火链网上实现的非同质化代币智能合约模板仅提供基础的功能，并没有提供安全转账的功能。
 
 ```solidity
 pragma solidity ^0.4.26;
@@ -390,8 +396,8 @@ contract XHERC721  {
 
     /**
      * 创建NFT。
-     * @param _tokenId 代币的标识符
-     * @param owner 拥有者
+     * @param to 接收方
+     * @param tokenId 代币的标识符
      */
     function mint(address to, uint256 tokenId) public onlyFundation {
         require(to != address(0), "ERC721: mint to the zero address");
@@ -663,6 +669,8 @@ public void callContract() {
     ]
 }
 ```
+
+
 
 ### 5.2.6 JavaScript版本的ERC721
 
@@ -1138,9 +1146,21 @@ function query(input_str){
 
 
 
+
+
+
+
+
+
+
+
 ## 5.3 ERC1155合约
 
+
+
 ​		本节描述通过星火链网实现并部署ERC1155智能合约。
+
+
 
 ​		ERC1155在一定程度上融合了ERC-20和ERC-721的功能。其主要用途包括了发行同质化代币和非同质化代币。同质化代币是指：能像ERC-20一样发布各样的代币类型；与此同时，ERC-1155标准更是能够发行NFT，且能基于一个合约同时发行多个NFT，有关ERC1155标准可以参考[官方文档](https://eips.ethereum.org/EIPS/eip-1155)。
 
@@ -1152,9 +1172,11 @@ function query(input_str){
 
 ### 5.3.2 合约说明
 
-​		本合约为Solidity合约示例，实现ERC1155功能。
+​		本合约为Solidity合约示例，实现ERC1155功能 。
 
 - **合约接口说明**
+
+  注意：在实现转账功能时，如果接收方的地址没有拥有者，或者是一个合约地址，那么NFT被转出去之后，就意味着该NFT以后将没有流通的功能了。因此转账的时候，要慎重。若是合约地址，可以采取安全转账的方式，根据ERC165的方式判断该合约是否实现了onERC1155Received接口，若是没有实现，则智能合约的执行将被中止，若实现了，说明该合约遵守了ERC1155合约的标准，确保以后NFT可以进行流通，则转账继续。目前，在星火链网上实现的非同质化代币智能合约模板仅提供基础的功能，并没有提供安全转账的功能。
 
 | 接口                                                         | 返回值    | 描述                                                         |
 | ------------------------------------------------------------ | --------- | ------------------------------------------------------------ |
@@ -1957,8 +1979,6 @@ function query(input_str){
 }
 
 ```
-
-
 
 
 
@@ -2891,3 +2911,4 @@ if (response.getErrorCode() == 0) {
     ]
 }
 ```
+
