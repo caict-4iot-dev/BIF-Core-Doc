@@ -4,9 +4,13 @@
 
 ​		5.1节描述使用Solidity语言编写的智能合约示例，实现ERC20功能；
 
-​		5.2节描述使用JavaScript语言编写的工业互联网标识合约示例，实现管理标识的功能；
+​		5.2节描述使用Solidity语言、JavaScript语言编写的智能合约示例，实现ERC721功能；
 
-​		5.3节描述使用JavaScript语言编写的SQL智能合约，实现学生管理功能。
+​		5.3节描述使用Solidity语言、JavaScript语言编写的智能合约示例，实现ERC1155功能；
+
+​		5.4节描述使用JavaScript语言编写的工业互联网标识合约示例，实现管理标识的功能；
+
+​		5.5节描述使用JavaScript语言编写的SQL智能合约，实现学生管理功能。
 
 ## 5.1 ERC20合约
 <h2 id="min-content" style="display:none;"> </h2>
@@ -274,19 +278,1723 @@ public void callContract() {
 }
 ```
 
-## 5.2 工业互联网标识合约
+
+
+## 5.2 ERC721合约
+
+
+
+​		本节描述通过星火链网实现并部署ERC721智能合约。
+
+
+
+​		相比于ERC20，ERC721是非同质化代币，也就意味着每个Token都是不一样的，都有自己的唯一性和独特价值，当然这也就意味着它们是不可分割的。有关ERC721标准可以参考[官方文档](https://eips.ethereum.org/EIPS/eip-721)。
+
+### 5.2.1 准备工作
+
+​		用户需准备好docker、docker-compose环境，本节不再详细说明。
+
+
+
+### 5.2.2 合约说明
+
+​		本合约为Solidity合约示例，实现ERC721功能。
+
+- **合约接口说明**
+
+| 接口                                                         | 返回值  | 描述                                                         |
+| ------------------------------------------------------------ | ------- | ------------------------------------------------------------ |
+| name()                                                       | string  | 代币名称获取                                                 |
+| symbol()                                                     | string  | 代币符号获取                                                 |
+| tokenURI()                                                   | 无      | 根据tokenid 去查询的，通常为一个json字符串，描述了 NFT的图片、介绍等详细信息。 |
+| balanceOf(address _owner)                                    | uint256 | 获取 用户_ owner 所有NFT代币的数量                           |
+| ownerOf(uint256_tokenId)                                     | address | 查询拥有tokenID号为 _tokenId 的NFT的 所属者owner的地址       |
+| transferFrom(address _from, address _to, uint256 _tokenId)   | 无      | 将tokenID 为 _tokenId 的NFT 从 _from地址的用户 转移到 _to地址的用户 |
+| safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes data ) | 无      | 安全地将tokenID 为 _tokenId 的NFT 从 _from地址的用户 转移到 _to地址的用户, 并携带 data数据；安全地是指：需要判断 _to的地址，是合约账户地址，还是用户账户地址。若为合约地址，该这个合约必须实现ERC721TokenReceiver接口。 |
+| safeTransferFrom(address _from, address _to, uint256 _tokenId) | 无      | 安全地将tokenID 为 _tokenId 的NFT 从 _from地址的用户 转移到 _to地址的用户 |
+| approve(address _approved, uint256 _tokenId)                 | 无      | 授权， _tokenId的拥有者 将_tokenId对应的 NFT 授权给 _approved 去操作 |
+| getApproved (uint256 _tokenId)                               | address | 获取 某个账户取得了_tokenId对应代币的授权                    |
+| setApprovalForAll(address _operator, bool _approved)         | 无      | 将自己所有的NFT 授权 给 _operator 用户。_ approved 为true时，代表授权，为false时，代表取消授权 |
+| isApprovedForAll(address _owner, address _operator)          | bool    | 查询_operator 是否拥有了 _owner所有NFT的 授权。              |
+
+- **合约文件**
+
+  注意：在实现转账功能时，如果接收方的地址没有拥有者，或者是一个合约地址，那么NFT被转出去之后，就意味着该NFT以后将没有流通的功能了。因此转账的时候，要慎重。若是合约地址，可以采取安全转账的方式，根据ERC165的方式判断该合约是否实现了onERC721Received接口，若是没有实现，则智能合约的执行将被中止，若实现了，说明该合约遵守了ERC721合约的标准，确保以后NFT可以进行流通，则转账继续。目前，在星火链网上实现的非同质化代币智能合约模板仅提供基础的功能，并没有提供安全转账的功能。
+
+```solidity
+pragma solidity ^0.4.26;
+
+contract XHERC721  {
+
+    address public fundation; // 管理员  
+    
+    // 代币名称
+    string private _name;
+
+    // 代币符号
+    string private _symbol;
+
+    // NFT 属于哪个账户的
+    mapping(uint256 => address) private _tokens;
+
+    // 账户有 几个NFT
+    mapping(address => uint256) private _balanceOf;
+
+    // 授权集合
+    mapping(uint256 => address) private _allowances;
+
+    // Mapping from owner to operator approvals 全部 NFT 的授权集合
+    mapping(address => mapping(address => bool)) private _isAllApproved;
+
+    
+    // 三个事件
+    event Transfer(address indexed _from, address indexed _to, uint256 indexed _tokenId);
+    event Approval(address indexed _owner, address indexed _approved, uint256 indexed _tokenId);
+    event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
+
+    /**
+     * 初始化构造
+     */
+    function TokenERC721(string memory name_, string memory symbol_) public {
+        _name = name_;
+        _symbol = symbol_;
+	    fundation = msg.sender; 
+    }
+    
+    constructor() {
+        fundation = msg.sender;    
+    }
+    
+
+    modifier onlyFundation() {
+        require(msg.sender == fundation);
+        _;
+    }
+
+    // 可选
+    function name() public view returns (string memory) {
+        return _name;
+    }
+    function symbol() public view returns (string memory) {
+        return _symbol;
+    }
+    
+    //function url() virtual public view returns (uint8);
+
+    // 必须实现 ----  9个方法
+    function balanceOf(address owner) public view returns (uint256) {
+        require(owner != address(0), "ERC721: balance query for the zero address");
+        return _balanceOf[owner];
+    }
+
+    // 代币的地址
+    function ownerOf(uint256 tokenId) public view returns (address) {
+        address owner = _tokens[tokenId];
+        require(owner != address(0), "ERC721: owner query for nonexistent token");
+        return owner;
+    }
+
+    /**
+     * 创建NFT。
+     * @param to 接收方
+     * @param tokenId 代币的标识符
+     */
+    function mint(address to, uint256 tokenId) public onlyFundation {
+        require(to != address(0), "ERC721: mint to the zero address");
+        require(!_exists(tokenId), "ERC721: token already minted");
+
+        _balanceOf[to] += 1;
+        _tokens[tokenId] = to;
+
+        emit Transfer(address(0), to, tokenId);
+    }
+    
+    function _burn(uint256 tokenId) internal {
+        address owner = XHERC721.ownerOf(tokenId);
+
+        // Clear approvals
+        _approve(address(0), tokenId);
+
+        _balanceOf[owner] -= 1;
+        delete _tokens[tokenId];
+
+        emit Transfer(owner, address(0), tokenId);
+    }
+    
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public {
+        require(_isApprovedOrOwner(msg.sender, tokenId), "ERC721: transfer caller is not owner nor approved");
+        _transfer(from, to, tokenId);
+    }
+    
+    /**
+     * 从地址转账。合约调用方须是经过_from授权的账户
+     * @param from 发送方
+     * @param to 接收方
+     * @param tokenId 代币的标识符
+     */
+    function _transfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal {
+        require(XHERC721.ownerOf(tokenId) == from, "ERC721: transfer from incorrect owner");
+        require(to != address(0), "ERC721: transfer to the zero address");
+
+        _approve(address(0), tokenId);
+
+        _balanceOf[from] -= 1;
+        _balanceOf[to] += 1;
+        _tokens[tokenId] = to;
+
+        emit Transfer(from, to, tokenId);
+    }
+
+    // 要实现转账，先实现授权。
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public {
+        safeTransferFrom(from, to, tokenId, "");
+    }
+    
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory _data
+    ) public {
+        require(_isApprovedOrOwner(msg.sender, tokenId), "ERC721: transfer caller is not owner nor approved");
+        _safeTransfer(from, to, tokenId, _data);
+    }
+    
+    function _safeTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory _data
+    ) internal {
+        _transfer(from, to, tokenId);
+    }
+
+
+    /**
+     * 授权
+     * @param to 接受授权的账户地址
+     * @param tokenId 代币的标识符
+     */
+    function approve(address to, uint256 tokenId) public  {
+        address owner = XHERC721.ownerOf(tokenId);
+        require(to != owner, "ERC721: approval to current owner");
+
+        require(
+            msg.sender == owner || isApprovedForAll(owner, msg.sender),
+            "ERC721: approve caller is not owner nor approved for all"
+        );
+
+        _approve(to, tokenId);
+    }
+    
+    function _approve(address to, uint256 tokenId) internal {
+        _allowances[tokenId] = to;
+        emit Approval(XHERC721.ownerOf(tokenId), to, tokenId);
+    }
+
+    /**
+     * 查看接受授权的账户地址
+     * @param tokenId 代币的标识符
+     */
+    function getApproved(uint256 tokenId) public view  returns (address) {
+        require(_exists(tokenId), "ERC721: approved query for nonexistent token");
+
+        return _allowances[tokenId];
+    }
+
+    
+    function _exists(uint256 tokenId) internal view returns (bool) {
+        return _tokens[tokenId] != address(0);
+    }
+
+    /**
+     * 拥有者将其所有NFT进行全部授权
+     * @param operator 接受授权的账户地址
+     * @param approved 是否授权
+     */
+    function setApprovalForAll(address operator, bool approved) public {
+        _setApprovalForAll(msg.sender, operator, approved);
+    }
+   
+    function _setApprovalForAll(
+        address owner,
+        address operator,
+        bool approved
+    ) internal {
+        require(owner != operator, "ERC721: approve to caller");
+        _isAllApproved[owner][operator] = approved;
+        emit ApprovalForAll(owner, operator, approved);
+    }
+    
+    function isApprovedForAll(address owner, address operator) public view returns (bool) {
+
+        require(owner != address(0), "_owner can not be empty!");
+        require(operator != address(0), "_operator can not be empty!");
+
+        return  _isAllApproved[owner][operator];
+    }
+
+        
+    function _isApprovedOrOwner(address spender, uint256 tokenId) internal view returns (bool) {
+        require(_exists(tokenId), "ERC721: operator query for nonexistent token");
+        address owner = XHERC721.ownerOf(tokenId);
+        return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
+    }
+
+}
+```
+
+
+
+### 5.2.3 合约部署
+
+- 利用JAVA SDK完成智能合约的部署，部署前需先通过星火链网solidity编译器将合约编译为opCode指令码
+
+```
+608060405234801561001057600080fd5b5061258a8061...
+```
+
+- 初始化参数
+
+```json
+"{\"function\":\"TokenERC721()\",\"args\":\"\"}",
+```
+
+- 使用JAVA SDK连接节点环境，部署合约
+
+```java
+public void contractCreate() {
+        // 初始化参数
+        String senderAddress = "did:bid:efkxG5de56Hg3W5MScC5dfeBXU8zHySb";
+        String senderPrivateKey = "priSPKp8W4kZhVvR9k3JgVW5tQeHXazCf54duiUVnyXtBJxSgK";
+        String payload = "608060405234801561001057600080fd5b5061258a8061...";
+        Long initBalance = ToBaseUnit.ToUGas("0.01");
+
+        BIFContractCreateRequest request = new BIFContractCreateRequest();
+        request.setSenderAddress(senderAddress);
+        request.setPrivateKey(senderPrivateKey);
+        request.setInitBalance(initBalance);
+        request.setPayload(payload);
+        request.setMetadata("create evm contract");
+        request.setType(1);
+        request.setInitInput("{\"function\":\"TokenERC721()\",\"args\":\"\"}");
+        // 调用BIFContractCreate接口
+        BIFContractCreateResponse response = sdk.getBIFContractService().contractCreate(request);
+        if (response.getErrorCode() == 0) {
+            System.out.println(JSON.toJSONString(response.getResult(), true));
+        } else {
+            System.out.println("error:      " + response.getErrorDesc());
+        }
+    }
+```
+
+### 5.2.4 合约调用
+
+```java
+public void contractInvokeByGas() {
+    // 初始化参数
+    String senderAddress = "did:bid:efuEAGFPJMsojwPGKzjD8vZX1wbaUrVV";
+    String contractAddress = "did:bid:ef88FVRoNbr4sEa2PZYTtnWpwdFUCL4L";
+    String senderPrivateKey = "priSPKkAwBP7w1ajzwp16hNBHvz5psKsksmgZDapcaebzxCS42";
+    Long amount = 1000L;
+
+    BIFContractInvokeRequest request = new BIFContractInvokeRequest();
+    request.setSenderAddress(senderAddress);
+    request.setPrivateKey(senderPrivateKey);
+    request.setContractAddress(contractAddress);
+    request.setBIFAmount(amount);
+    request.setMetadata("contract invoke");
+    request.setInput("{\"function\":\"mint(uint256,address)\",\"args\":\"1234,did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p\"}");
+    // 调用 BIFContractInvoke 接口
+    BIFContractInvokeResponse response = sdk.getBIFContractService().contractInvoke(request);
+    if (response.getErrorCode() == 0) {
+        System.out.println(JSON.toJSONString(response.getResult(), true));
+    } else {
+        System.out.println("error:      " + response.getErrorDesc());
+    }
+}
+```
+
+### 5.2.5 合约查询
+
+- 使用JAVA SDK进行合约查询，以查询name接口为例
+
+```java
+public void callContract() {
+    // Init variable
+    // Contract address
+    String contractAddress = "did:bid:efkeicT6SsyJwVkeNKsjKJ4bpW5SKYHY";
+
+    // Init request
+    BIFContractCallRequest request = new BIFContractCallRequest();
+    request.setContractAddress(contractAddress);
+    request.setInput("{\"function\":\"balanceOf(address)\",\"args\":\"did:bid:efJcqN3oenYLSp4zSjime62wmYg7UFVh\",\"return\":\"returns(uint256)\"}");
+
+    // Call call
+    BIFContractCallResponse response = sdk.getBIFContractService().contractQuery(request);
+    if (response.getErrorCode() == 0) {
+        BIFContractCallResult result = response.getResult();
+        System.out.println(JSON.toJSONString(result, true));
+    } else {
+        System.out.println("error: " + response.getErrorDesc());
+    }
+}
+```
+
+- 返回结果
+
+```json
+{
+    "query_rets":[
+        {
+            "result":{
+                "data":"[0x00000001]",
+                "gasused":563
+            },
+            "error":{
+            }
+        }
+    ]
+}
+```
+
+
+
+### 5.2.6 JavaScript版本的ERC721
+
+准备工作、合约说明（接口定义）同上。在合约部署、调用、查询时，与solidity版本稍有差别， 下面将介绍差异点。
+
+合约部署时：
+
++ 与solidity合约编译为opCode指令码不同，js版本的合约，仅需将合约代码压缩，并将所有的`"` 进行转义： `\"`。
+
++ js合约的初始化参数   
+
+  ```json
+  "{\"params\":{\"name\":\"bifcore nft\", \"symbol\":\"XH\"}}"
+  ```
+
++ 使用JAVA SDK连接节点环境，部署合约时，需修改的部分：
+
+  ```java
+  // 压缩之后的合约代码
+  String payload = "'use strict';const FUNDATION=\"_fundation\";const URI=\"_uri\";...";
+  ...
+  // 设置为0，代表支持js合约
+  request.setType(0);
+  ...
+  // 初始化参数
+  request.setInitInput("{\"params\":{\"name\":\"bifcore nft\", \"symbol\":\"XH\"}}");
+  ```
+
+合约调用时，传递参数的形式如下：
+
+```json
+request.setInput("{\"method\":\"mint\",\"params\":{\"to\":\"did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p\",\"tokenId\":3}}");
+```
+
+合约查询时，传递参数的形式如下：
+
+```json
+request.setInput("{\"method\":\"balanceOf\",\"params\":{\"owner\": \"did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p\"}}");
+```
+
++ 返回结果：
+
+  ```json
+  "query_rets": [
+  	{
+  		"result": {
+  				"type": "string",
+                  "value": "1"
+  		}
+  	}
+  ]
+  ```
+
+
+
+**合约文件 - JavaScript **
+
+```js
+'use strict';
+
+// 管理员  
+const _fundation = "_fundation";
+
+// 代币名称
+const _name = "_name";
+
+// 代币符号
+const _symbol = "_symbol";
+
+
+// 账户有 几个NFT      address => uint256
+const BALANCEOF = "_balanceOf";
+
+// NFT 属于哪个账户的    uint256 => address
+var TOKENS = "_tokens";
+
+// 授权集合    uint256 => address
+const ALLOWANCES = "_allowances";
+
+// 全部 NFT 的授权集合    address => mapping(address => bool)
+const ISALLAPPROVED = "_isAllApproved";
+
+const sender_g = Chain.msg.sender;
+const chainCode_g = Chain.chainCode;
+
+/*
+	是否为合约所有者
+*/
+function isContractOwner(){
+    var owner = Chain.load(_fundation);
+    if(Chain.msg.sender === owner){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+function init(input_str){
+
+    var input = JSON.parse(input_str);
+    var params = input.params;
+
+    Utils.log('input_str: (' + input_str + ').');
+
+    Chain.store("_name", params.name);
+    Chain.store("_symbol", params.symbol);
+    Chain.store("_fundation", sender_g);
+        
+    return;
+} 
+
+
+// 可选
+function nameOfNFT() {
+    return Chain.load("_name");
+}
+function symbol() {
+    return Chain.load("_symbol");
+}
+
+function _exists(tokenId) {
+
+    var tokens = {}; // 二维数组
+    var dataToken = JSON.parse(Chain.load(TOKENS));
+    if (dataToken) {
+        tokens = dataToken;
+    }
+
+    if (tokens[tokenId] !== undefined){
+        return true;
+    }else{
+        return false;  
+    }
+}
+
+// 必须实现 ----  9个方法
+function balanceOf(params) {
+
+    var owner = params.owner; 
+
+    Utils.assert(owner.length !== 0 , "ERC721: balance query for the zero address");
+
+    var balances = {};
+    var data = JSON.parse(Chain.load(BALANCEOF));
+    if (data) {
+        balances = data;
+    }
+
+    if (balances[owner] !== undefined){
+        return balances[owner];  
+    }else{
+        return 0;    
+    }
+}
+
+// 代币的地址
+function _ownerOf(tokenId) {
+
+    var tokens = {}; 
+    var dataToken = JSON.parse(Chain.load(TOKENS));
+    if (dataToken) {
+        tokens = dataToken;
+    }
+
+    var owner = "";
+    if (tokens[tokenId] !== undefined){
+        owner = tokens[tokenId];  
+    }
+    
+    Utils.assert(owner.length !== 0, "ERC721: owner query for nonexistent token");
+    return owner;
+}
+
+/**
+* 返回NFT的 拥有者。
+* @param params 
+* @param params.tokenId 代币的标识符
+
+*/
+function ownerOf(params) {
+
+    var tokenId = params.tokenId;
+    return _ownerOf(tokenId);
+}
+
+/**
+* 创建NFT。
+* @param _tokenId 代币的标识符
+* @param owner 拥有者
+*/
+function mint(params) {
+
+    if(isContractOwner() === false){
+        Utils.log('mint' + Chain.msg.sender);
+        return;
+    }
+
+    var to = params.to;
+    var tokenId = params.tokenId;
+    Utils.log('mint-params: ' + params);
+
+    Utils.assert(to.length !== 0 , "ERC721: mint to the zero address");
+    Utils.assert(!_exists(tokenId), "ERC721: token already minted");
+
+    var balances = {}; 
+    var data = JSON.parse(Chain.load(BALANCEOF));
+    if (data) {
+        balances = data;
+    }
+
+    if (balances[to] !== undefined){
+        var temp = balances[to];
+        balances[to] = temp + 1;  
+    }else{
+        balances[to] = 1;  
+    }
+      
+    // 读取 tokens 集合
+    var tokens = {};
+    var dataToken = JSON.parse(Chain.load(TOKENS));
+    if (dataToken) {
+        tokens = dataToken;
+    }
+
+    tokens[tokenId] = to;
+
+    Chain.store(BALANCEOF, JSON.stringify(balances));
+    Chain.store(TOKENS, JSON.stringify(tokens));
+     
+    Chain.tlog('Transfer', '', to, tokenId);
+}
+
+function __setApproved( tokenId, to) {
+
+    // 读取 allowance 集合
+    var allowances = {}; 
+    var data = JSON.parse(Chain.load(ALLOWANCES));
+    if (data) {
+        allowances = data;
+    }
+
+    allowances[tokenId] = to;
+    Chain.store(ALLOWANCES, JSON.stringify(allowances));
+}
+
+function _approve( to, tokenId)  {
+
+    __setApproved( tokenId, to);
+
+    Chain.tlog('Approval', _ownerOf(tokenId), to, tokenId);
+}
+
+function _getApproved(tokenId) {
+
+    Utils.assert(_exists(tokenId), "ERC721: approved query for nonexistent token");
+    
+    // 读取 allowance 集合
+    var allowances = {};
+    var data = JSON.parse(Chain.load(ALLOWANCES));
+    if (data) {
+        allowances = data;
+    }
+
+    if (allowances[tokenId] !== undefined){
+        
+        return allowances[tokenId]; 
+    }else{
+        return "";  
+    }
+}
+
+function getApproved(params) {
+    var input = params; // tokenId
+
+    return _getApproved(input.tokenId);
+}
+
+function __getIsAllApproved(owner, to){
+
+    // 读取 全部授权的集合
+    var allApproved = {}; 
+    var data = JSON.parse(Chain.load(ISALLAPPROVED));
+    if (data) {
+        allApproved = data;
+    }
+    
+    if (allApproved[owner] === undefined ){
+        return false;
+    }
+
+    return allApproved[owner][to];
+}
+
+function _isApprovedForAll( owner, operator) {
+
+    Utils.assert(owner.length !== 0, "_owner can not be empty!");
+    Utils.assert(operator.length !== 0, "_operator can not be empty!");
+
+    return  __getIsAllApproved(owner, operator);
+}
+
+function isApprovedForAll(params) {
+
+    var input = params; // owner, operator
+
+    return _isApprovedForAll(input.owner, input.operator);
+}
+
+
+function __setAllApproved(owner, to, isAllApproved){
+    
+    // 读取 全部授权的集合
+    var allApproved = {}; 
+    var data = JSON.parse(Chain.load(ISALLAPPROVED));
+    if (data) {
+        allApproved = data;
+    }
+
+    var inner_allApproved = {};
+    
+    if (allApproved[owner] === undefined ){
+        allApproved[owner] = inner_allApproved; 
+    }
+    
+    Utils.log("allApproved:" + allApproved);
+    
+    allApproved[owner][to] = isAllApproved;
+
+    Utils.log("allApproved after:" + allApproved);
+
+    Chain.store(ISALLAPPROVED, JSON.stringify(allApproved));
+}
+
+function _setApprovalForAll(owner, operator, isApproved) {
+    Utils.assert(owner !== operator, "ERC721: approve to caller");
+    // 设置 全部授权
+    __setAllApproved(owner, operator, isApproved);
+    Chain.tlog('ApprovalForAll', owner, operator, isApproved);
+}
+
+// 设置 全部授权
+function setApprovalForAll( params )  {
+
+    return _setApprovalForAll(sender_g, params.operator, params.isApproved);
+}
+
+function _transfer(
+     from,
+     to,
+     tokenId
+)  {
+
+    Utils.log('_ownerOf(tokenId): (' + _ownerOf(tokenId) + ').');
+    Utils.log('from: (' + from + ').');
+
+    Utils.assert(_ownerOf(tokenId) === from, "ERC721: transfer from incorrect owner");
+    Utils.assert(to.length !== 0, "ERC721: transfer to the zero address");
+
+    _approve('', tokenId);
+
+    var balances = {}; 
+    var data = JSON.parse(Chain.load(BALANCEOF));
+    if (data) {
+        balances = data;
+    }
+
+    if (balances[from] !== undefined){
+        var temp = balances[from];
+        balances[from] = temp - 1;  
+    }
+
+    if (balances[to] !== undefined){
+        var tempTo = balances[to];
+        balances[to] = tempTo + 1; 
+    }else{
+        balances[to] = 1; 
+    }
+    
+    // 读取 tokens 集合
+    var tokens = {};
+    var dataToken = JSON.parse(Chain.load(TOKENS));
+    if (dataToken) {
+        tokens = dataToken;
+    }
+
+    tokens[tokenId] = to;
+
+    Chain.store(BALANCEOF, JSON.stringify(balances));
+    Chain.store(TOKENS, JSON.stringify(tokens));
+
+    Chain.tlog('Transfer', from, to, tokenId);
+}
+
+function _isApprovedOrOwner(spender, tokenId)  {
+
+    Utils.log("_exists(tokenId): " + _exists(tokenId));
+    Utils.assert(_exists(tokenId), "ERC721: operator query for nonexistent token");
+
+    var owner = _ownerOf(tokenId);
+    Utils.log("owner: " + owner);
+    Utils.log("_getApproved(tokenId): " + _getApproved(tokenId));
+    Utils.log("_isApprovedForAll(owner, spender): " + _isApprovedForAll(owner, spender));
+    return (spender === owner || _getApproved(tokenId) === spender || _isApprovedForAll(owner, spender));
+}
+
+function approve( params )  {
+
+    var input = params; // to,  tokenId
+
+    var owner = _ownerOf(input.tokenId);
+    Utils.assert(input.to !== owner, "ERC721: approval to current owner");
+    Utils.log("approve-sender_g:" + sender_g + "  owner:" + owner);
+    Utils.assert(
+        sender_g === owner || _isApprovedForAll(owner, sender_g),
+        "ERC721: approve caller is not owner nor approved for all"
+    );
+
+    _approve(input.to, input.tokenId);
+}
+
+function transferFrom(params) {
+
+    var input = params; // from、to、tokenId
+
+    Utils.assert(_isApprovedOrOwner(sender_g, input.tokenId), "ERC721: transfer caller is not owner nor approved");
+
+    _transfer(input.from, input.to, input.tokenId);
+}
+
+function main(input_str){
+    var input = JSON.parse(input_str);
+
+    if(input.method === 'mint'){
+        mint(input.params);
+    }
+    else if(input.method === 'transferFrom'){
+        transferFrom(input.params);
+    }
+    else if(input.method === 'approve') {
+        approve(input.params);
+    }else if(input.method === 'setApprovalForAll') {
+        setApprovalForAll(input.params);
+    }
+ 
+    else{
+        throw '<Main interface passes an invalid operation type>';
+    }
+}
+
+function query(input_str){
+    var input  = JSON.parse(input_str);
+    var object ={};
+    if(input.method === 'nameOfNFT'){
+        object = nameOfNFT();
+    }else if(input.method === 'symbol'){
+        object = symbol();
+    }else if(input.method === 'balanceOf'){
+        object = balanceOf(input.params);
+    }else if(input.method === 'ownerOf'){
+        object = ownerOf(input.params);
+    }else if(input.method === 'isApprovedForAll'){
+        object = isApprovedForAll(input.params);
+    }else if(input.method === 'getApproved'){
+        object = getApproved(input.params);
+    }
+    else{
+       	throw '<unidentified operation type>';
+    }
+    return JSON.stringify(object);
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+## 5.3 ERC1155合约
+
+
+
+​		本节描述通过星火链网实现并部署ERC1155智能合约。
+
+
+
+​		ERC1155在一定程度上融合了ERC-20和ERC-721的功能。其主要用途包括了发行同质化代币和非同质化代币。同质化代币是指：能像ERC-20一样发布各样的代币类型；与此同时，ERC-1155标准更是能够发行NFT，且能基于一个合约同时发行多个NFT，有关ERC1155标准可以参考[官方文档](https://eips.ethereum.org/EIPS/eip-1155)。
+
+### 5.3.1 准备工作
+
+​		用户需准备好docker、docker-compose环境，本节不再详细说明。
+
+
+
+### 5.3.2 合约说明
+
+​		本合约为Solidity合约示例，实现ERC1155功能 。
+
+- **合约接口说明**
+
+  注意：在实现转账功能时，如果接收方的地址没有拥有者，或者是一个合约地址，那么NFT被转出去之后，就意味着该NFT以后将没有流通的功能了。因此转账的时候，要慎重。若是合约地址，可以采取安全转账的方式，根据ERC165的方式判断该合约是否实现了onERC1155Received接口，若是没有实现，则智能合约的执行将被中止，若实现了，说明该合约遵守了ERC1155合约的标准，确保以后NFT可以进行流通，则转账继续。目前，在星火链网上实现的非同质化代币智能合约模板仅提供基础的功能，并没有提供安全转账的功能。
+
+| 接口                                                         | 返回值    | 描述                                                         |
+| ------------------------------------------------------------ | --------- | ------------------------------------------------------------ |
+| uri (uint256 _id)                                            | string    | 根据 _id 去查询的，通常为一个json字符串，描述了 NFT的图片、介绍等详细信息 |
+| safeTransferFrom(address _from, address _to, uint256 _id, uint256 _value, bytes calldata _data) ; | 无        | 代币转移接口，从 _from 账号发送  _value 个标识为 _id的代币到  _to 账号 |
+| safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data) | 无        | 批量代币转移接口，从 _from 账号发送  _values[i] 个标识为 _ids[i] 的代币到  _to 账号。_values  和 _ids数组需要长度一致。 |
+| balanceOf(address _owner, uint256 _id)                       | uint256   | 查询_owner 账户所持有的 标识为 _id 的代币 的数量             |
+| balanceOfBatch(address[] calldata _owners, uint256[] calldata _ids) | uint256[] | 查询 _owners[i]  账户所持有的 标识为  _ids[i]  的代币 的数量。_owners 和 _ids 数组需要长度一致。 |
+| setApprovalForAll(address , bool)                            | 无        | 设置授权                                                     |
+| isApprovedForAll(address , address)                          | bool      | 查询某个账户是否授权给某个账户                               |
+| onERC1155Received(address _operator, address _from, uint256 _id, uint256 _value, bytes calldata _data) | bytes4    | 在 safe转账下，具备接收NFT功能的智能合约必须实现该接口。     |
+| onERC1155BatchReceived(address _operator, address _from, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data) | bytes4    | 在 safe批量转账下，具备接收NFT功能的智能合约必须实现该接口。 |
+
+- **合约文件**
+
+```solidity
+pragma solidity ^0.4.26;
+
+contract ERC1155 {
+
+    // Mapping from token ID to account balances （某个代币 -- 某个账户地址 -- 金额）
+    mapping(uint256 => mapping(address => uint256)) private _balances;
+
+    // Mapping from account to operator approvals （账户地址A ---- 对账户地址B是否进行了授权） 
+    mapping(address => mapping(address => bool)) private _operatorApprovals;
+
+    // 链下的资源链接，用于记录保存token的具体介绍信息   https://token-cdn-domain/{id}.json
+    string private _uri;
+
+    // 单个转账时的事件
+    event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
+    // 批量转账时的事件
+    event TransferBatch( address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values
+    );
+    // 授权时的事件
+    event ApprovalForAll(address indexed account, address indexed operator, bool approved);
+    // 更新uri时的事件
+    event URI(string value, uint256 indexed id);
+    
+    address public fundation; // 管理员
+
+    modifier onlyFundation() {
+        require(msg.sender == fundation);
+        _;
+    }
+
+    /**
+     * 初始化构造
+     */
+    function TokenERC1155(string memory uri_) public {
+        fundation = msg.sender;    
+        _setURI(uri_);                         
+    }
+    
+    constructor(string memory uri_) {
+        fundation = msg.sender;    
+        _setURI(uri_);
+    }
+
+    function uri(uint256) public view  returns (string memory) {
+        return _uri;
+    }
+
+    /**
+     * 查询单个账户的余额
+     * @param account 查询的账户地址
+     * @param id 代币的标识符
+     */
+    function balanceOf(address account, uint256 id) public view returns (uint256) {
+        require(account != address(0), "ERC1155: balance query for the zero address");
+        return _balances[id][account];
+    }
+  
+    /**
+     * 批量查询多个账户的余额
+     * @param accounts 查询的账户地址 数组
+     * @param ids 代币的标识符 数组
+     */
+    function balanceOfBatch(address[] memory accounts, uint256[] memory ids)
+        public
+        view    
+        returns (uint256[] memory)
+    {
+        require(accounts.length == ids.length, "ERC1155: accounts and ids length mismatch");
+
+        uint256[] memory batchBalances = new uint256[](accounts.length);
+
+        for (uint256 i = 0; i < accounts.length; ++i) {
+            batchBalances[i] = balanceOf(accounts[i], ids[i]);
+        }
+
+        return batchBalances;
+    }
+
+    /**
+     * 详见 _setApprovalForAll
+     */
+    function setApprovalForAll(address operator, bool approved) public {
+        _setApprovalForAll(msg.sender, operator, approved);
+    }
+
+    /**
+     * 查询账户是否授权给 某个账户
+     * @param account 需要查询的账户地址
+     * @param operator 授权的账户地址
+     */
+    function isApprovedForAll(address account, address operator) public view  returns (bool) {
+        return _operatorApprovals[account][operator];
+    }
+
+    /**
+     * 详见 _safeTransferFrom
+     */
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) public  {
+        require(
+            from == msg.sender || isApprovedForAll(from, msg.sender),
+            "ERC1155: caller is not owner nor approved"
+        );
+        _safeTransferFrom(from, to, id, amount, data);
+    }
+
+    /**
+     * 详见 _safeBatchTransferFrom
+     */
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) public  {
+        require(
+            from == msg.sender || isApprovedForAll(from, msg.sender),
+            "ERC1155: transfer caller is not owner nor approved"
+        );
+        _safeBatchTransferFrom(from, to, ids, amounts, data);
+    }
+
+    /**
+     * 从from账户，转账 amount 个 token为id的资产到to账户。
+     * @param from 转账的发送账户地址
+     * @param to 转账的接收账户地址
+     * @param id token的标识符
+     * @param amount 转账的数量     
+     * @param data 转账的信息
+     */
+    function _safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) internal {
+        require(to != address(0), "ERC1155: transfer to the zero address");
+
+        address operator = msg.sender;
+        uint256 fromBalance = _balances[id][from];
+        require(fromBalance >= amount, "ERC1155: insufficient balance for transfer");
+        _balances[id][from] = fromBalance - amount;
+        _balances[id][to] += amount;
+
+        emit TransferSingle(operator, from, to, id, amount);
+    }
+
+    /**
+     * 从from账户批量转账资产到to账户。
+     * @param from 转账的发送账户地址
+     * @param to 转账的接收账户地址
+     * @param ids token的标识符数组
+     * @param amounts 转账的数量数组     
+     * @param data 转账的信息
+     */
+    function _safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) internal {
+        require(ids.length == amounts.length, "ERC1155: ids and amounts length mismatch");
+        require(to != address(0), "ERC1155: transfer to the zero address");
+
+        address operator = msg.sender;
+        for (uint256 i = 0; i < ids.length; ++i) {
+            uint256 id = ids[i];
+            uint256 amount = amounts[i];
+
+            uint256 fromBalance = _balances[id][from];
+            require(fromBalance >= amount, "ERC1155: insufficient balance for transfer");
+            _balances[id][from] = fromBalance - amount;
+            _balances[id][to] += amount;
+        }
+
+        emit TransferBatch(operator, from, to, ids, amounts);
+    }
+  
+    function _setURI(string memory newuri) internal {
+        _uri = newuri;
+    }
+
+   /**
+     * 铸造代币
+     * @param to 接收账户地址
+     * @param id token的标识符
+     * @param amount 转账的数量     
+     * @param data 转账的信息
+     */
+    function mint (
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) onlyFundation public {
+        require(to != address(0), "ERC1155: mint to the zero address");
+
+        address operator = msg.sender;
+        _balances[id][to] += amount;
+        emit TransferSingle(operator, address(0), to, id, amount);
+    }
+
+   /**
+     * 批量铸造代币
+     * @param to 接收账户地址
+     * @param ids token的标识符数组
+     * @param amounts 转账的数量数组  
+     * @param data 转账的信息
+     */
+    function mintBatch(
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) onlyFundation public {
+        require(to != address(0), "ERC1155: mint to the zero address");
+        require(ids.length == amounts.length, "ERC1155: ids and amounts length mismatch");
+
+        address operator = msg.sender;
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            _balances[ids[i]][to] += amounts[i];
+        }
+        emit TransferBatch(operator, address(0), to, ids, amounts);
+    }
+
+    /**
+     * 为账户下所有的资产设置授权
+     * @param owner 需要授权的账户
+     * @param operator 接受授权的账户
+     * @param approved 是否授权
+     */
+    function _setApprovalForAll(
+        address owner,
+        address operator,
+        bool approved
+    ) internal {
+        require(owner != operator, "ERC1155: setting approval status for self");
+        _operatorApprovals[owner][operator] = approved;
+        emit ApprovalForAll(owner, operator, approved);
+    } 
+}
+```
+
+### 5.3.3 合约部署
+
+- 利用JAVA SDK完成智能合约的部署，部署前需先通过星火链网solidity编译器将合约编译为opCode指令码
+
+```
+60806040523480156200001157600080fd5b5060405162...
+```
+
+- 初始化参数
+
+```json
+{\"function\":\"TokenERC1155(string)\",\"args\":\"''\"}
+```
+
+- 使用JAVA SDK连接节点环境，部署合约
+
+```java
+public void contractCreate() {
+        // 初始化参数
+        String senderAddress = "did:bid:efkxG5de56Hg3W5MScC5dfeBXU8zHySb";
+        String senderPrivateKey = "priSPKp8W4kZhVvR9k3JgVW5tQeHXazCf54duiUVnyXtBJxSgK";
+        String payload = "60806040523480156200001157600080fd5b5060405162...";
+        Long initBalance = ToBaseUnit.ToUGas("0.01");
+
+        BIFContractCreateRequest request = new BIFContractCreateRequest();
+        request.setSenderAddress(senderAddress);
+        request.setPrivateKey(senderPrivateKey);
+        request.setInitBalance(initBalance);
+        request.setPayload(payload);
+        request.setMetadata("create evm contract");
+        request.setType(1);
+        request.setInitInput("{\"function\":\"TokenERC1155(string)\",\"args\":\"''\"}");
+        // 调用BIFContractCreate接口
+        BIFContractCreateResponse response = sdk.getBIFContractService().contractCreate(request);
+        if (response.getErrorCode() == 0) {
+            System.out.println(JSON.toJSONString(response.getResult(), true));
+        } else {
+            System.out.println("error:      " + response.getErrorDesc());
+        }
+    }
+```
+
+### 5.3.4 合约调用
+
+```java
+public void contractInvokeByGas() {
+    // 初始化参数
+    String senderAddress = "did:bid:efuEAGFPJMsojwPGKzjD8vZX1wbaUrVV";
+    String contractAddress = "did:bid:efsMeqKguqvY86aaRkPrvQx4YEKzVVAn";
+    String senderPrivateKey = "priSPKkAwBP7w1ajzwp16hNBHvz5psKsksmgZDapcaebzxCS42";
+    Long amount = 1000L;
+
+    BIFContractInvokeRequest request = new BIFContractInvokeRequest();
+    request.setSenderAddress(senderAddress);
+    request.setPrivateKey(senderPrivateKey);
+    request.setContractAddress(contractAddress);
+    request.setBIFAmount(amount);
+    request.setMetadata("contract invoke");
+    request.setInput("{                           \"function\":\"mintBatch(address,uint256[],uint256[],bytes)\",                            \"args\":\"did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p[11,12,13],[1100,1200,1300],'data'\"}");
+    // 调用 BIFContractInvoke 接口
+    BIFContractInvokeResponse response = sdk.getBIFContractService().contractInvoke(request);
+    if (response.getErrorCode() == 0) {
+        System.out.println(JSON.toJSONString(response.getResult(), true));
+    } else {
+        System.out.println("error:      " + response.getErrorDesc());
+    }
+}
+```
+
+### 5.3.5 合约查询
+
+- 使用JAVA SDK进行合约查询，以查询name接口为例
+
+```java
+public void callContract() {
+    // Init variable
+    // Contract address
+    String contractAddress = "did:bid:efkeicT6SsyJwVkeNKsjKJ4bpW5SKYHY";
+
+    // Init request
+    BIFContractCallRequest request = new BIFContractCallRequest();
+    request.setContractAddress(contractAddress);
+    request.setInput("{\"function\":\"balanceOfBatch(address[],uint256[])\",\"args\":\"[did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p，did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p],[11,12]\",\"return\":\"returns(uint256[])\"}");
+
+    // Call call
+    BIFContractCallResponse response = sdk.getBIFContractService().contractQuery(request);
+    if (response.getErrorCode() == 0) {
+        BIFContractCallResult result = response.getResult();
+        System.out.println(JSON.toJSONString(result, true));
+    } else {
+        System.out.println("error: " + response.getErrorDesc());
+    }
+}
+```
+
+- 返回结果
+
+```json
+{
+    "query_rets":[
+        {
+            "result":{
+                "data":"[spark token]",
+                "data": [0x44c,0x4b0],
+                "gasused":2364
+            },
+            "error":{
+            }
+        }
+    ]
+}
+```
+
+
+
+
+
+### 5.3.6 JavaScript版本的ERC1155
+
+准备工作、合约说明（接口定义）同上。在合约部署、调用、查询时，与solidity版本稍有差别， 下面将介绍差异点。
+
+合约部署时：
+
++ 与solidity合约编译为opCode指令码不同，js版本的合约，仅需将合约代码压缩，并将所有的`"` 进行转义： `\"`。
+
++ js合约的初始化参数   
+
+  ```json
+  "{\"params\":{\"uri\":\"https://www.bifcore.com/erc/{id}.json\"}}",
+  ```
+
++ 使用JAVA SDK连接节点环境，部署合约时，需修改的部分：
+
+  ```java
+  // 压缩之后的合约代码
+  String payload = "'use strict';const FUNDATION=\"_fundation\";const URI=\"_uri\";const...";
+  ...
+  // 设置为0，代表支持js合约
+  request.setType(0);
+  ...
+  // 初始化参数
+  request.setInitInput("{\"params\":{\"uri\":\"https://www.bifcore.com/erc/{id}.json\"}}");
+  ```
+
+合约调用时，传递参数的形式如下：
+
+```json
+request.setInput("{\"method\":\"mintBatch\",\"params\":{\"to\":\"did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p\",\"ids\":[1,2,3],\"amounts\":[10,10,10],\"data\":\"\"}}");
+```
+
+合约查询时，传递参数的形式如下：
+
+```json
+request.setInput("{\"method\":\"balanceOfBatch\",\"params\":{\"accounts\": [\"did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p\",\"did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p\",\"did:bid:efqhQu9YWEWpUKQYkAyGevPGtAdD1N6p\"], \"ids\": [1,2,3]}}");
+```
+
++ 返回结果：
+
+  ```json
+  "query_rets": [
+  	{
+  		"result": {
+  				"type": "string",
+                  "value": "\"[10,10,10]\""
+  		}
+  	}
+  ]
+  ```
+
+
+
+**合约文件 - JavaScript **
+
+```js
+'use strict';
+
+// 管理员  
+const FUNDATION = "_fundation";
+// uri
+const URI = "_uri";
+
+// 账户有 几个NFT      ( uint256(代币类型), map(address, uint256))
+const BALANCES = "_balances";
+
+// 全部 NFT 的授权集合    (address, map(address, bool))
+const OPERATORAPPROVALS = "_operatorApprovals";
+
+const sender_g = Chain.msg.sender;
+const chainCode_g = Chain.chainCode;
+
+function _setURI(newuri) {
+    Chain.store(URI, JSON.stringify(newuri));
+}
+
+/*
+	是否为合约所有者
+*/
+function isContractOwner(){
+    var owner = Chain.load(FUNDATION);
+    if(Chain.msg.sender === owner){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+function init(input_str) {
+
+    var input = JSON.parse(input_str);
+    var params = input.params; // uri
+
+    Utils.log('input_str: (' + input_str + ').');
+
+    _setURI(params.uri);
+    Chain.store(FUNDATION, sender_g);
+
+    return;
+}
+
+function uri(id) {
+    return JSON.parse(Chain.load(URI));
+}
+
+function _getBalanceOf(id, account) {
+
+    //读取 数组集合
+    var balances = {}; 
+    var data = JSON.parse(Chain.load(BALANCES));
+    if (data) {
+        balances = data;
+    }
+
+    var inner_balances = {};
+
+    if (balances[id] === undefined ){
+        balances[id] = inner_balances; 
+    }
+
+    if (balances[id][account] === undefined ){
+        return 0; 
+    }
+
+    return balances[id][account];
+}
+
+function _setBalanceOfForKey(id, account, value) {
+   
+    // 读取 全部授权的集合
+    var balances = {}; 
+    var data = JSON.parse(Chain.load(BALANCES));
+    if (data) {
+        balances = data;
+    }
+
+    var inner_balances = {};
+    
+    if (balances[id] === undefined ){
+        balances[id] = inner_balances; 
+    }
+        
+    balances[id][account] = value;
+
+    Utils.log("balances:" + balances);
+
+    Chain.store(BALANCES, JSON.stringify(balances));
+}
+
+function balanceOf(params) {
+
+    var account = params.account;
+    var id = params.id;
+
+    Utils.assert(account.length !== 0, "ERC1155: balance query for the zero address");
+
+    return _getBalanceOf(id, account);
+}
+
+function balanceOfBatch(params) { 
+
+    var accounts = params.accounts;
+    var ids = params.ids;
+
+    Utils.assert(accounts.length === ids.length, "ERC1155: accounts and ids length mismatch");
+
+    var batchBalances = [];
+    var i = 0;
+    for (i = 0; i < accounts.length; i += 1) {
+        batchBalances[i] = _getBalanceOf(ids[i], accounts[i]);
+    }
+   
+    return JSON.stringify(batchBalances);
+}
+
+function __setAllApproved(owner, to, isAllApproved){
+    
+    // 读取 全部授权的集合
+    var allApproved = {}; 
+    var data = JSON.parse(Chain.load(OPERATORAPPROVALS));
+    if (data) {
+        allApproved = data;
+    }
+
+    var inner_allApproved = {};
+    
+    if (allApproved[owner] === undefined ){
+        allApproved[owner] = inner_allApproved; 
+    }
+        
+    allApproved[owner][to] = isAllApproved;
+
+    Utils.log("allApproved:" + allApproved);
+
+    Chain.store(OPERATORAPPROVALS, JSON.stringify(allApproved));
+}
+
+function _setApprovalForAll(owner, operator ,isApproved)  {
+
+    Utils.assert(owner !== operator, "ERC1155: setting approval status for self");
+
+    __setAllApproved(owner, operator, isApproved);
+    Chain.tlog('ApprovalForAll', owner, operator, isApproved);
+}
+
+function setApprovalForAll( params ) {
+
+    var operator = params.operator;
+    var isApproved = params.isApproved; // bool 类型
+
+    _setApprovalForAll(sender_g, operator, isApproved);
+}
+
+function __getIsAllApproved(owner, to){
+
+    // 读取 全部授权的集合
+    var allApproved = {}; 
+    var data = JSON.parse(Chain.load(OPERATORAPPROVALS));
+    if (data) {
+        allApproved = data;
+    }
+
+    var inner_allApproved = {};
+
+    if (allApproved[owner] === undefined ){
+        allApproved[owner] = inner_allApproved; 
+    }
+
+    if (allApproved[owner][to] === undefined ){
+        return false; 
+    }
+
+    return allApproved[owner][to];
+}
+
+function _isApprovedForAll( owner, operator) {
+
+    Utils.assert(owner.length !== 0, "_owner can not be empty!");
+    Utils.assert(operator.length !== 0, "_operator can not be empty!");
+
+    return  __getIsAllApproved(owner, operator);
+}
+
+function isApprovedForAll( params ) {
+
+    var account = params.account;
+    var operator = params.operator; 
+
+    return _isApprovedForAll(account, operator);
+}
+
+function _safeTransferFrom(from, to, id, amount, data) {
+
+    Utils.assert(to.length > 0, "ERC1155: transfer to the zero address");
+
+    var operator = sender_g;
+
+    var fromBalance = _getBalanceOf(id, from);
+
+    Utils.assert(fromBalance >= amount, "ERC1155: insufficient balance for transfer");
+
+    _setBalanceOfForKey(id, from, fromBalance - amount);
+    var toBalance = _getBalanceOf(id, to);
+    _setBalanceOfForKey(id, to, toBalance + amount);
+
+    Chain.tlog('TransferSingle', operator, from, to, id, amount);
+}
+
+function safeTransferFrom( params ) {
+
+    var from = params.from;
+    var to = params.to; 
+    var id = params.id; // int
+    var amount = params.amount; // int
+    var data = params.data; 
+
+    Utils.assert(from === sender_g || _isApprovedForAll(from, sender_g), "ERC1155: caller is not owner nor approved");
+
+    _safeTransferFrom(from, to, id, amount, data);
+}
+
+function _safeBatchTransferFrom( from, to, ids, amounts, data )  {
+
+    Utils.assert(ids.length === amounts.length, "ERC1155:  ids and amounts length mismatch");
+    Utils.assert(to.length > 0, "ERC1155:  transfer to the zero address");
+
+    var operator = sender_g;
+
+    var i = 0;
+    var id;
+    var amount;
+    var fromBalance;
+    var toBalance;
+    for (i = 0; i < ids.length; i += 1) {
+        id = ids[i];
+        amount = amounts[i];
+
+        fromBalance = _getBalanceOf(id, from);
+        Utils.assert(fromBalance >= amount, "ERC1155:  insufficient balance for transfer");
+
+        _setBalanceOfForKey(id, from, fromBalance - amount);
+        toBalance = _getBalanceOf(id, to);
+        _setBalanceOfForKey(id, to, toBalance + amount);
+    }
+
+    Chain.tlog('TransferBatch', operator, from, to, JSON.stringify(ids), JSON.stringify(amounts));
+}
+
+function safeBatchTransferFrom( params ) {
+
+    var from = params.from;
+    var to = params.to; 
+    var ids = params.ids; 
+    var amounts = params.amounts;
+    var data = params.data; 
+
+    Utils.assert(from === sender_g || _isApprovedForAll(from, sender_g), "ERC1155: caller is not owner nor approved");
+
+    _safeBatchTransferFrom(from, to, ids, amounts, data);
+}
+
+function mint( params ) {
+
+    if(isContractOwner() === false){
+        Utils.log('mint' + Chain.msg.sender);
+        return;
+    }
+
+    var to = params.to;
+    var id = params.id; //int 
+    var amount = params.amount; //int 
+    var data = params.data;
+
+    Utils.assert(to.length > 0 , "ERC1155: mint to the zero address");
+
+    var operator = sender_g;
+
+    var toBalance = _getBalanceOf(id, to);
+    _setBalanceOfForKey(id, to , toBalance + amount);
+
+    Chain.tlog('TransferSingle', operator, "", to, id, amount);
+}
+
+function mintBatch( params ) {
+
+    if(isContractOwner() === false){
+        Utils.log('mint' + Chain.msg.sender);
+        return;
+    }
+
+    var to = params.to;
+    var ids = params.ids; 
+    var amounts = params.amounts; 
+    var data = params.data;
+
+    Utils.assert(to.length > 0 , "ERC1155: mint to the zero address");
+    Utils.assert(ids.length === amounts.length, "ERC1155: ids and amounts length mismatch");
+
+    Utils.log('mintBatch-ids: (' + ids + ').');
+    Utils.log('mintBatch-amounts: (' + amounts + ').');
+
+    var operator = sender_g;
+
+    var i = 0;
+    var toBalance;
+    for ( i = 0; i < ids.length; i += 1) {
+         toBalance = _getBalanceOf(ids[i], to);
+         _setBalanceOfForKey(ids[i], to , toBalance + amounts[i]);
+    }
+
+    Chain.tlog('TransferBatch', operator, "", to, JSON.stringify(ids), JSON.stringify(amounts));
+}
+
+function main(input_str){
+    var input = JSON.parse(input_str);
+
+    if(input.method === 'mint'){
+        mint(input.params);
+    }
+    else if(input.method === 'mintBatch'){
+        mintBatch(input.params);
+    }
+    else if(input.method === 'safeTransferFrom'){
+        safeTransferFrom(input.params);
+    }
+    else if(input.method === 'safeBatchTransferFrom') {
+        safeBatchTransferFrom(input.params);
+    }else if(input.method === 'setApprovalForAll') {
+        setApprovalForAll(input.params);
+    }
+ 
+    else{
+        throw '<Main interface passes an invalid operation type>';
+    }
+}
+
+function query(input_str){
+    var input  = JSON.parse(input_str);
+    var object ={};
+    if(input.method === 'uri'){
+        object = uri(input.params);
+    }else if(input.method === 'balanceOf'){
+        object = balanceOf(input.params);
+    }else if(input.method === 'balanceOfBatch'){
+        object = balanceOfBatch(input.params);
+    }else if(input.method === 'isApprovedForAll'){
+        object = isApprovedForAll(input.params);
+    }
+    else{
+       	throw '<unidentified operation type>';
+    }
+    return JSON.stringify(object);
+}
+
+```
+
+
+
+## 5.4 工业互联网标识合约
 
 ​		本节描述通过星火链网实现并部署工业互联网标识智能合约。
 
 ​		工业互联网标识映射的信息资源是具有唯一性的功能，对比传统互联网的DNS功能作用，可以通过标识代表映射具体某资源，而星火链工业互联网标识合约是基于星火链网主链，将各顶级GHR、二级SHR以及企业LHS的数据维护在主链账本中，通过自主身份体系和BID，实现对其所辖数据的自管理。
 
-### 5.2.1 准备工作
+### 5.4.1 准备工作
 
 ​		目前星火链节点主要运行在linux系统服务器上，系统环境在centos7.5及以上，g++ >=4.8.2版本。
 
 ​		智能合约只有部署到链上才能运行，因此部署运行之前首先要编译启动链节点。
 
-### 5.2.2 合约说明
+### 5.4.2 合约说明
 
 ​		标识合约是由JavaScript语言开发，在链上由V8虚拟机引擎解释执行。
 
@@ -579,7 +2287,7 @@ function query(input){
 }
 ```
 
-### 5.2.3 合约部署
+### 5.4.3 合约部署
 
 ​		运行链节点服务之后就可以部署合约到链上，生成对应的合约账户，合约账户可以后续进行合约管理，部署合约是通过调用SDK接口。
 
@@ -676,7 +2384,7 @@ if (response.getErrorCode() == 0) {
 
 ​		合约部署完后返回对应的hash值，可以根据hash查询对应详细交易信息。
 
-### 5.2.4 合约调用
+### 5.4.4 合约调用
 
 + **设置白名单**
 
@@ -807,7 +2515,7 @@ if (response.getErrorCode() == 0) {
 
 ​		标识删除接口与标识创建的核心参数基本相同，差异在input合约调用参数里，method字段为删除操作的合约函数名，params里是要删除的zid标识名，type标识类型（GHR, SHR是contract_address, LHS的是URL等类型）以及opFlag值（此处为1删除标志）。
 
-### 5.2.5 合约查询
+### 5.4.5 合约查询
 
 + **标识查询**
 
@@ -926,13 +2634,13 @@ if (response.getErrorCode() == 0) {
 }
 ```
 
-## 5.3 SQL智能合约
+## 5.5 SQL智能合约
 
 ​		本节描述通过星火链网实现并部署SQL智能合约。
 
 ​		SQL智能合约基于JavaScript语言编写。合约支持SQL相关语法，开发者通过在合约中使用SQL语句，达到操作数据库的目的，使合约开发人员可以更高效、更易用地对数据进行管理和使用。
 
-### 5.3.1 准备工作
+### 5.5.1 准备工作
 
 ​		使用星火链支持SQL智能合约功能的版本，需完整部署星火链才可使用。本地或远程服务器上有可用的、拥有root权限的MySQL服务器。
 
@@ -965,7 +2673,7 @@ if (response.getErrorCode() == 0) {
 }
 ```
 
-### 5.3.2 合约说明
+### 5.5.2 合约说明
 
 ​		本合约实现了一个学生数据管理系统，合约支持将学生的基本信息通过SQL语句保存在执行节点的MySQL服务器数据库中。
 
@@ -1117,7 +2825,7 @@ function query(input) {
 }
 ```
 
-### 5.3.3 合约部署
+### 5.5.3 合约部署
 
 ```java
 // 初始化参数
@@ -1143,7 +2851,7 @@ if (response.getErrorCode() == 0) {
 }
 ```
 
-### 5.3.4 合约调用
+### 5.5.4 合约调用
 
 ```java
 // 初始化参数
@@ -1169,7 +2877,7 @@ if (response.getErrorCode() == 0) {
 }
 ```
 
-### 5.3.5 合约查询
+### 5.5.5 合约查询
 
 ```java
 String contractAddress = "did:bid:efMfNGcRct9ao3jUT5huS9K6dNLcU9Tq";
@@ -1203,3 +2911,4 @@ if (response.getErrorCode() == 0) {
     ]
 }
 ```
+
