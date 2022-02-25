@@ -1138,13 +1138,13 @@ BIFContractCallResponse contractQuery(BIFContractCallRequest);
 
 > 请求参数
 
-| 参数            | 类型   | 描述                      |
-| --------------- | ------ | ------------------------- |
-| sourceAddress   | String | 选填，合约触发账户地址    |
-| contractAddress | String | 必填，合约账户地址        |
-| input           | String | 选填，合约入参            |
-| gasPrice        | Long   | 选填，打包费用 (单位是PT) |
-|                 |        |                           |
+| 参数            | 类型   | 描述                                           |
+| --------------- | ------ | ---------------------------------------------- |
+| sourceAddress   | String | 选填，合约触发账户地址                         |
+| contractAddress | String | 必填，合约账户地址                             |
+| input           | String | 选填，合约入参                                 |
+| gasPrice        | Long   | 选填，打包费用 (单位是PT)默认，默认100L        |
+| feeLimit        | Long   | 选填，交易花费的手续费(单位是PT)，默认1000000L |
 
 
 > 响应数据
