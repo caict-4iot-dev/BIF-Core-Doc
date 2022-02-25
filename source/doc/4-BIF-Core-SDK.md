@@ -628,8 +628,8 @@ BIFAccountSetMetadatasResponse setMetadatas(BIFAccountSetMetadatasRequest);
 | ------------- | ------- | ------------------------------------------------------------ |
 | senderAddress | string  | 必填，交易源账号，即交易的发起方                             |
 | privateKey    | String  | 必填，交易源账户私钥                                         |
-| ceilLedgerSeq | Long    | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| remarks       | String  | 可选，用户自定义给交易的备注                                 |
+| ceilLedgerSeq | Long    | 选填，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
+| remarks       | String  | 选填，用户自定义给交易的备注                                 |
 | key           | String  | 必填，metadatas的关键词，长度限制[1, 1024]                   |
 | value         | String  | 必填，metadatas的内容，长度限制[0, 256000]                   |
 | version       | Long    | 选填，metadatas的版本                                        |
@@ -760,8 +760,8 @@ BIFAccountSetPrivilegeResponse setPrivilege(BIFAccountSetPrivilegeRequest);
 | ----------------------- | ------ | ------------------------------------------------------------ |
 | senderAddress           | string | 必填，交易源账号，即交易的发起方                             |
 | privateKey              | String | 必填，交易源账户私钥                                         |
-| ceilLedgerSeq           | Long   | 可选，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
-| remarks                 | String | 可选，用户自定义给交易的备注                                 |
+| ceilLedgerSeq           | Long   | 选填，区块高度限制, 如果大于0，则交易只有在该区块高度之前（包括该高度）才有效 |
+| remarks                 | String | 选填，用户自定义给交易的备注                                 |
 | signers                 | list   | 选填，签名者权重列表                                         |
 | signers.address         | String | 签名者区块链账户地址                                         |
 | signers.weight          | Long   | 为签名者设置权重值                                           |
