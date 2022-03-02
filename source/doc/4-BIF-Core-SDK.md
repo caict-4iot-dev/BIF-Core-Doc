@@ -1288,7 +1288,7 @@ BIFTransactionGasSendResponse gasSend(BIFTransactionGasSendRequest);
 | remarks       | String | 选填，用户自定义给交易的备注                                 |
 | destAddress   | String | 必填，发起方地址                                             |
 | amount        | Long   | 必填，转账金额                                               |
-| gasPrice      | Long   | 选填，打包费用 (单位是PT)默认，默认100L                      |
+| gasPrice      | Long   | 选填，打包费用 (单位是PT)，默认100L                          |
 | feeLimit      | Long   | 选填，交易花费的手续费(单位是PT)，默认1000000L               |
 
 > 响应数据
@@ -1590,6 +1590,8 @@ BIFTransactionGetInfoResponse evaluateFee(BIFTransactionEvaluateFeeRequest);
 | signatureNumber | Integer                         | 选填，待签名者的数量，默认是1，大小限制[1, Integer.MAX_VALUE] |
 | remarks         | String                          | 选填，用户自定义给交易的备注                                 |
 | operation       | [BaseOperation](#BaseOperation) | 必填，待提交的操作，不能为空                                 |
+| gasPrice        | Long                            | 选填，打包费用 (单位是PT)                                    |
+| feeLimit        | Long                            | 选填，交易花费的手续费(单位是PT)                             |
 
 #### BaseOperation
 
